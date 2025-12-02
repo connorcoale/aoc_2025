@@ -1,0 +1,19 @@
+# Verilator generated files
+obj_dir/
+V*
+*.o
+*.d
+*.bin
+*.vcd
+*.fst
+
+# Build artifacts
+build/
+*.log
+*.out
+
+# Editor/OS specific files
+.DS_Store
+*~
+#*#
+.#*
