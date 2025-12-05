@@ -1,5 +1,5 @@
 # Verilator generated files
-obj_dir/
+*/obj_dir/
 V*
 *.o
 *.d
