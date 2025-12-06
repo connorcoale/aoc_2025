@@ -1,5 +1,12 @@
 // top.sv
-module top_01 (
+module top_01 #(
+  parameter MAX_TWIST          = 999,
+  parameter MAX_TWIST_W        = $clog2(MAX_TWIST),
+  parameter MAX_DIAL           = 99,
+  parameter MAX_DIAL_W         = $clog2(MAX_DIAL),
+  parameter MAX_TWISTED_DIAL   = MAX_TWIST + MAX_DIAL,
+  parameter MAX_TWISTED_DIAL_W = $clog2(MAX_TWISTED_DIAL) + 1
+) (
   input clk,
   input reset,
   input cs,
@@ -9,7 +16,14 @@ module top_01 (
   output solution_valid
 );
 
-  part_a_01 a (
+  part_a_01 #(
+    .MAX_TWIST(MAX_TWIST),
+    .MAX_TWIST_W(MAX_TWIST_W),
+    .MAX_DIAL(MAX_DIAL),
+    .MAX_DIAL_W(MAX_DIAL_W),
+    .MAX_TWISTED_DIAL(MAX_TWISTED_DIAL),
+    .MAX_TWISTED_DIAL_W(MAX_TWISTED_DIAL_W)
+  ) a (
     .clk(clk),
     .reset(reset),
     .data(data),
@@ -21,38 +35,37 @@ module top_01 (
 
 endmodule
 
-module part_a_01 (
-  input clk,
-  input reset,
-  input [7:0] data,
-  input data_valid,
+module part_a_01 #(
+  parameter MAX_TWIST,
+  parameter MAX_TWIST_W,
+  parameter MAX_DIAL,
+  parameter MAX_DIAL_W,
+  parameter MAX_TWISTED_DIAL,
+  parameter MAX_TWISTED_DIAL_W 
+) (
+  input        clk,
+  input        reset,
+  input [7:0]  data,
+  input        data_valid,
   output [7:0] solution,
-  output solution_valid
+  output       solution_valid
 );
-
-  localparam MAX_TWIST = 999;
-  localparam MAX_TWIST_W = $clog2(MAX_TWIST);
-  localparam MAX_DIAL = 99;
-  localparam MAX_DIAL_W = $clog2(MAX_DIAL);
-  localparam MAX_TWISTED_DIAL = MAX_TWIST + MAX_DIAL;
-  localparam MAX_TWISTED_DIAL_W = $clog2(MAX_TWISTED_DIAL) + 1;
 
   typedef enum {
     IDLE,
     TWIST
   } e_state;
 
-
   e_state state_r, state_next;
-  logic signed [MAX_TWISTED_DIAL_W-1:0] twist_r, twist_next;
-  logic unsigned [MAX_TWISTED_DIAL_W-1:0] dial_r;
-  logic signed [MAX_TWISTED_DIAL_W-1:0] dial_next, dial_next_pre_modulus;
-  logic cw_r, cw_next;
+  logic signed   [MAX_TWIST_W-1:0]        twist_r, twist_next;
+  logic unsigned [MAX_DIAL_W-1:0]         dial_r;
+  logic signed   [MAX_TWISTED_DIAL_W-1:0] dial_next, dial_next_pre_modulus;
+  logic                                   cw_r, cw_next;
 
   always_comb begin
-    state_next = state_r;
-    twist_next = twist_r;
-    dial_next = dial_r;
+    state_next            = state_r;
+    twist_next            = twist_r;
+    dial_next             = dial_r;
     dial_next_pre_modulus = dial_r;
     cw_next = cw_r;
     case (state_r)
@@ -96,6 +109,7 @@ module part_a_01 (
     end
   end
 
+  // Flopping of state signals
   always_ff @(posedge clk or posedge reset) begin
     if (reset) begin
       state_r <= IDLE; 
@@ -111,11 +125,7 @@ module part_a_01 (
     end
   end
 
-  //    delayed     first cycle of valid?  first cycle after valid deasserted
-  logic data_valid_r, data_valid_assert, data_valid_deassert;
-  always_ff @(posedge clk) data_valid_r <= data_valid;
-  assign data_valid_assert = data_valid && !data_valid_r;
-
+  // Count how many times it ends at zero
   logic twist_end = data_valid && (data == 8'h0A);
   logic inc = twist_end && (dial_next == '0);
   logic [15:0] zeros_r, zeros_next;

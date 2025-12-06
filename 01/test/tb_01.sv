@@ -31,6 +31,13 @@ module tb_01 ();
       output #0 reset, data_valid, data;
   endclocking
 
+  task reset_dut;
+    @(cb);
+    cb.reset <= '1;
+    @(cb);
+    cb.reset <= '0;
+  endtask
+
   task send_twists;
     input string file_name;
 
@@ -57,22 +64,14 @@ module tb_01 ();
     cb.data <= '0;
     cb.data_valid <= 1'b0;
 
-    @(cb);
-    cb.reset <= '1;
-    @(cb);
-    cb.reset <= '0;
+    //reset_dut();
     // send_twists("/Users/connorcoale/Documents/projects/aoc_2025/01/input/example_01.txt");
-    @(cb);
-    cb.reset <= '1;
-    @(cb);
-    cb.reset <= '0;
-    send_twists("/Users/connorcoale/Documents/projects/aoc_2025/01/input/input_01.txt");
-    //send_twists("/Users/connorcoale/Documents/projects/aoc_2025/01/input/example_02.txt");
-    @(cb);
-    cb.reset <= '1;
-    @(cb);
-    cb.reset <= '0;
+    // reset_dut();
+    // send_twists("/Users/connorcoale/Documents/projects/aoc_2025/01/input/example_02.txt");
+    // reset_dut();
     // send_twists("/Users/connorcoale/Documents/projects/aoc_2025/01/input/example_03.txt");
+    reset_dut();
+    send_twists("/Users/connorcoale/Documents/projects/aoc_2025/01/input/input_01.txt");
     @(cb);
     $finish;
   end
