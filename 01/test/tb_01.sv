@@ -1,3 +1,22 @@
+/* 
+ *  Copyright (C) 2025  Connor Coale
+ *
+ *  This file is part of aoc_2025.
+ *
+ *  aoc_2025 is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  aoc_2025 is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with aoc_2025.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 module tb_01 ();
   logic clk;
   logic reset;
@@ -10,7 +29,6 @@ module tb_01 ();
     $dumpfile("trace.vcd");
     $dumpvars();
   end
-
 
   top_01 dut (
     .clk(clk),
@@ -64,12 +82,14 @@ module tb_01 ();
     cb.data <= '0;
     cb.data_valid <= 1'b0;
 
-    //reset_dut();
+    // reset_dut();
     // send_twists("/Users/connorcoale/Documents/projects/aoc_2025/01/input/example_01.txt");
     // reset_dut();
     // send_twists("/Users/connorcoale/Documents/projects/aoc_2025/01/input/example_02.txt");
     // reset_dut();
     // send_twists("/Users/connorcoale/Documents/projects/aoc_2025/01/input/example_03.txt");
+    // reset_dut();
+    // send_twists("/Users/connorcoale/Documents/projects/aoc_2025/01/input/example_04.txt");
     reset_dut();
     send_twists("/Users/connorcoale/Documents/projects/aoc_2025/01/input/input_01.txt");
     @(cb);
