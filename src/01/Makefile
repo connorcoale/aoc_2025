@@ -34,9 +34,9 @@ clean:
 compile_sim: $(SOURCES) $(DEPS) $(TB_SOURCES) $(TB_DEPS)
 	$(SIM_TOOL) $(SIM_FLAGS) $(SIM_TOP_FILE) $(SIM_DUT_FILE)
 
-$(SIM_RESDIR)/V$(SIM_TOP_FILE): compile_sim
+$(SIM_RESDIR)/V$(SIM_TOP): compile_sim
 
-run_sim: $(SIM_RESDIR)/V$(SIM_TOP_FILE)
+run_sim: $(SIM_RESDIR)/V$(SIM_TOP)
 	$(SIM_RESDIR)/V$(SIM_TOP)
   
 
