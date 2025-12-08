@@ -1,32 +1,42 @@
-SOURCES = src/top_01.sv
-DEPS    =
+# PER-PROBLEM-DEFINITIONS
+AOC_PROB      = 01
+TOP_BASE_NAME = top
+TB_BASE_NAME  = tb
 
-TB_SOURCES = tb/tb_01.sv
+# DUT TOP AND TB TOP (the verilog module name)
+TOP    = $(TOP_BASE_NAME)_$(AOC_PROB)
+TB_TOP = $(TB_BASE_NAME)_$(AOC_PROB)
+
+# SOURCE FILE DEFINITIONS (plus dependencies)
+SOURCES    = src/$(TOP).sv
+DEPS       =
+TB_SOURCES = test/$(TB_TOP).sv
 TB_DEPS    =
 
-SIM_TOOL     = verilator
-SIM_RESDIR   = out/verilated
-SIM_FLAGS    = --binary -j 0 -Wno-lint --trace -Mdir $(SIM_RESDIR)
-SIM_TOP      = tb_01 
-SIM_TOP_FILE = test/tb_01.sv
-SIM_DUT      = src/aoc_01.f
+# VERILATOR DEFINITIONS
+SIM_RESDIR = out/verilated
+SIM_TOOL   = verilator
+SIM_FLAGS  = --binary -j 0 -Wno-lint --trace -Mdir $(SIM_RESDIR)
 
+# FILE INPUTS/OUTPUTS
+SIM_TOP      = $(TB_BASE_NAME)_$(AOC_PROB)
+SIM_TOP_FILE = test/$(TB_TOP).sv
+SIM_DUT_FILE = -f src/aoc_$(AOC_PROB).f
 
-TB_SOURCES = 
-TB_DEPS =
+.PHONY: clean compile_sim run_sim
 
 compile:
 	echo "no compile set up yet"
-
-.PHONY: clean compile_sim run_sim
 
 clean: 
 	rm -f out/verilated/*
 
 compile_sim: $(SOURCES) $(DEPS) $(TB_SOURCES) $(TB_DEPS)
-	$(SIM_TOOL) $(SIM_FLAGS) $(SIM_TOP_FILE) -f $(SIM_DUT)
+	$(SIM_TOOL) $(SIM_FLAGS) $(SIM_TOP_FILE) $(SIM_DUT_FILE)
 
-run_sim: $(SIM_RESDIR)/V*
+$(SIM_RESDIR)/V$(SIM_TOP_FILE): compile_sim
+
+run_sim: $(SIM_RESDIR)/V$(SIM_TOP_FILE)
 	$(SIM_RESDIR)/V$(SIM_TOP)
   
 
