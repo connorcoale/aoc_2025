@@ -91,7 +91,7 @@ module tb_01 ();
     // reset_dut();
     // send_twists("/Users/connorcoale/Documents/projects/aoc_2025/01/input/example_04.txt");
     reset_dut();
-    send_twists("/Users/connorcoale/Documents/projects/aoc_2025/01/input/input_01.txt");
+    send_twists("/Users/connorcoale/Documents/projects/aoc_2025/src/01/input/input_01.txt");
     @(cb);
     $finish;
   end

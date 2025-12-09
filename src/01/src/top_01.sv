@@ -113,7 +113,8 @@ module solve_01 #(
         end
       end
       TWIST : begin
-        if (8'h30 <= data && data <= 8'h39) begin
+        if (!data_valid) state_next = TWIST; // do nothing
+        else if (8'h30 <= data && data <= 8'h39) begin
           // state stays the same
           twist_next = (twist_r * 10) + data - 8'h30;
         end else begin
@@ -130,7 +131,7 @@ module solve_01 #(
         end
       end
     endcase
-    if (state_r == TWIST && !data_valid) begin
+    if (state_r == TWIST && data_valid && data == 8'h04) begin
       state_next = IDLE;
     end
   end
