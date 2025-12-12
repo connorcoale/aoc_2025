@@ -12,6 +12,12 @@ build/
 *.log
 *.out
 
+# Vivado outputs
+*.bit
+*clockInfo.txt
+*.Xil/
+
+
 # Editor/OS specific files
 .DS_Store
 *~
