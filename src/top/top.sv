@@ -25,6 +25,8 @@
 module top (
   input        clk,     // Top level system clock input.
   input        resetn,
+  input        print_input_n,
+  input [3:0]  sw,
   input  wire uart_rxd, // UART Recieve pin.
   output wire uart_txd  // UART transmit pin.
 );
@@ -38,11 +40,15 @@ module top (
   wire                    uart_rx_break;
   wire                    uart_rx_en;
 
+  assign uart_rx_en = 1'b1;
+
   wire                    uart_tx_busy;
   wire [PAYLOAD_BITS-1:0] uart_tx_data;
   wire                    uart_tx_en;
 
-  assign uart_rx_en = 1'b1;
+  wire print_input;
+  assign print_input = !print_input_n;
+
 
   // UART RX
   uart_rx #(
@@ -78,10 +84,78 @@ module top (
     .clk          (clk          ),
     .resetn       (resetn       ),
     .uart_txd     (uart_txd     ),
-    .uart_tx_en   (uart_rx_en   ),
+    .uart_tx_en   (uart_tx_en   ),
     .uart_tx_busy (uart_tx_busy ),
-    .uart_tx_data (uart_rx_data ) 
+    .uart_tx_data (uart_tx_data ) 
   );
+
+  // logic [7:0] input_chars [16384];
+  logic [7:0] input_chars [128];
+
+  typedef enum {
+    IDLE,
+    LOAD,
+    WAIT_RCV_CHAR,
+    SOLVE,
+    OUTPUT_DATA,
+    WAIT_SEND_CHAR,
+    OUTPUT_SOL
+  } e_state;
+
+  e_state state_r, state_next;
+  logic [$clog2(128)-1:0] char_cnt_r, char_cnt_next;
+  logic [7:0] char_r, char_next;
+  logic load_char;
+
+  always_comb begin
+    state_next = state_r;
+    char_next  = char_r;
+    char_cnt_nxt = char_cnt_r;
+    load_char = 0;
+    send_char = 0;
+
+    case (state_r) 
+    IDLE: begin
+      if (uart_rx_valid) begin
+        char_cnt_nxt = '0;
+        char_next = uart_rx_data;
+        state_next = LOAD;
+      end
+      else if (print_input) begin
+        char_cnt_nxt = '0;
+        state_next = OUTPUT_DATA;
+      end
+    end
+    LOAD: begin
+      char_cnt_nxt = char_cnt_nxt + 1;
+      char_nxt = uart_rx_data;
+      load_char = 1;
+      state_next = WAIT_RCV_CHAR;
+    end
+    WAIT_RCV_CHAR: begin
+      if (uart_rx_valid) begin
+        char_next = uart_rx_data;
+        state_next = (uart_rx_data == 'h04) ? IDLE : LOAD;
+      end
+    end
+    SOLVE: begin
+      
+    end
+    OUTPUT_DATA: begin
+      char_cnt_nxt = '0;
+      send_char = 1;
+    end
+    WAIT_SEND_CHAR: begin
+
+    end
+    OUTPUT_SOL: begin
+
+    end
+    default: begin
+
+    end
+    endcase
+  end
 
 
 
