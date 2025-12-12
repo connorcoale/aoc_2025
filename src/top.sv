@@ -65,7 +65,7 @@ module top (
     .uart_rx_data (uart_rx_data )  // The recieved data.
   );
 
-  top_01 inst_top_01 (
+  part_01 inst_part_01 (
     .clk(clk),
     .reset(reset),
     .cs(cs),

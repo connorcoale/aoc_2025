@@ -26,11 +26,11 @@ module tb_01 ();
   logic solution_valid;
 
   initial begin
-    $dumpfile("trace.vcd");
+    $dumpfile("sim/trace/trace_part_01.vcd");
     $dumpvars();
   end
 
-  top_01 dut (
+  part_01 dut (
     .clk(clk),
     .reset(reset),
     .data(data),
@@ -81,17 +81,16 @@ module tb_01 ();
     cb.reset <= 1'b0;
     cb.data <= '0;
     cb.data_valid <= 1'b0;
-
-    // reset_dut();
-    // send_twists("/Users/connorcoale/Documents/projects/aoc_2025/01/input/example_01.txt");
-    // reset_dut();
-    // send_twists("/Users/connorcoale/Documents/projects/aoc_2025/01/input/example_02.txt");
-    // reset_dut();
-    // send_twists("/Users/connorcoale/Documents/projects/aoc_2025/01/input/example_03.txt");
-    // reset_dut();
-    // send_twists("/Users/connorcoale/Documents/projects/aoc_2025/01/input/example_04.txt");
     reset_dut();
-    send_twists("/Users/connorcoale/Documents/projects/aoc_2025/src/01/input/input_01.txt");
+    send_twists("sim/stimulus/01/example_01.txt");
+    reset_dut();
+    send_twists("sim/stimulus/01/example_02.txt");
+    reset_dut();
+    send_twists("sim/stimulus/01/example_03.txt");
+    reset_dut();
+    send_twists("sim/stimulus/01/example_04.txt");
+    // reset_dut();
+    // send_twists("sim/stimulus/01/input_01.txt");
     @(cb);
     $finish;
   end

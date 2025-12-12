@@ -18,10 +18,10 @@
  */
 
 /*
- *  top_01.sv
+ *  part_01.sv
  *  Top module for solving Advent of Code 2025, problem 01.
 */
-module top_01 #(
+module part_01 #(
   parameter MAX_DIAL           = 99,
   parameter MAX_TWIST          = 999
 ) (

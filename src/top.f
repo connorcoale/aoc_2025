@@ -1,6 +1,6 @@
 // src files
 top.sv
-top_01.sv
+part_01.sv
 
 // lib files
 lib/uart/uart_rx.sv
