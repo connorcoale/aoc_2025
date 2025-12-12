@@ -89,76 +89,71 @@ module top (
     .uart_tx_data (uart_tx_data ) 
   );
 
-  // logic [7:0] input_chars [16384];
-  logic [7:0] input_chars [128];
+  // // logic [7:0] input_chars [16384];
+  // logic [7:0] input_chars [128];
 
-  typedef enum {
-    IDLE,
-    LOAD,
-    WAIT_RCV_CHAR,
-    SOLVE,
-    OUTPUT_DATA,
-    WAIT_SEND_CHAR,
-    OUTPUT_SOL
-  } e_state;
+  // typedef enum {
+    // IDLE,
+    // LOAD,
+    // WAIT_RCV_CHAR,
+    // SOLVE,
+    // OUTPUT_DATA,
+    // WAIT_SEND_CHAR,
+    // OUTPUT_SOL
+  // } e_state;
 
-  e_state state_r, state_next;
-  logic [$clog2(128)-1:0] char_cnt_r, char_cnt_next;
-  logic [7:0] char_r, char_next;
-  logic load_char;
+  // e_state state_r, state_next;
+  // logic [$clog2(128)-1:0] char_cnt_r, char_cnt_next;
+  // logic [7:0] char_r, char_next;
+  // logic load_char;
 
-  always_comb begin
-    state_next = state_r;
-    char_next  = char_r;
-    char_cnt_nxt = char_cnt_r;
-    load_char = 0;
-    send_char = 0;
+  // always_comb begin
+    // state_next = state_r;
+    // char_next  = char_r;
+    // char_cnt_nxt = char_cnt_r;
+    // load_char = 0;
+    // send_char = 0;
 
-    case (state_r) 
-    IDLE: begin
-      if (uart_rx_valid) begin
-        char_cnt_nxt = '0;
-        char_next = uart_rx_data;
-        state_next = LOAD;
-      end
-      else if (print_input) begin
-        char_cnt_nxt = '0;
-        state_next = OUTPUT_DATA;
-      end
-    end
-    LOAD: begin
-      char_cnt_nxt = char_cnt_nxt + 1;
-      char_nxt = uart_rx_data;
-      load_char = 1;
-      state_next = WAIT_RCV_CHAR;
-    end
-    WAIT_RCV_CHAR: begin
-      if (uart_rx_valid) begin
-        char_next = uart_rx_data;
-        state_next = (uart_rx_data == 'h04) ? IDLE : LOAD;
-      end
-    end
-    SOLVE: begin
+    // case (state_r) 
+    // IDLE: begin
+      // if (uart_rx_valid) begin
+        // char_cnt_nxt = '0;
+        // char_next = uart_rx_data;
+        // state_next = LOAD;
+      // end
+      // else if (print_input) begin
+        // char_cnt_nxt = '0;
+        // state_next = OUTPUT_DATA;
+      // end
+    // end
+    // LOAD: begin
+      // char_cnt_nxt = char_cnt_nxt + 1;
+      // char_nxt = uart_rx_data;
+      // load_char = 1;
+      // state_next = WAIT_RCV_CHAR;
+    // end
+    // WAIT_RCV_CHAR: begin
+      // if (uart_rx_valid) begin
+        // char_next = uart_rx_data;
+        // state_next = (uart_rx_data == 'h04) ? IDLE : LOAD;
+      // end
+    // end
+    // SOLVE: begin
       
-    end
-    OUTPUT_DATA: begin
-      char_cnt_nxt = '0;
-      send_char = 1;
-    end
-    WAIT_SEND_CHAR: begin
+    // end
+    // OUTPUT_DATA: begin
+      // char_cnt_nxt = '0;
+      // send_char = 1;
+    // end
+    // WAIT_SEND_CHAR: begin
 
-    end
-    OUTPUT_SOL: begin
+    // end
+    // OUTPUT_SOL: begin
 
-    end
-    default: begin
+    // end
+    // default: begin
 
-    end
-    endcase
-  end
-
-
-
-
-
+    // end
+    // endcase
+  // end
 endmodule
