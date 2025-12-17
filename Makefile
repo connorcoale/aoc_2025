@@ -5,7 +5,7 @@ TB_TOP = tb_top
 # SOURCE FILE DEFINITIONS (plus dependencies)
 SOURCES    = src/top.sv src/part_01.sv
 DEPS       =
-LIBS       = src/lib/uart/uart_rx.sv src/lib/uart/uart_tx.sv
+LIBS       = src/lib/uart/uart_rx.sv src/lib/uart/uart_tx.sv src/lib/mem/mem_wrapper.sv
 
 # VERILATOR DEFINITIONS
 SIM_RESDIR = sim/verilated

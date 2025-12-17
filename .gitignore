@@ -25,4 +25,4 @@ build/
 .#*
 
 # can't upload your input!
-*/*/input/input_*.txt
+sim/stimulus/*/input/input_*.txt

@@ -26,7 +26,7 @@ module top (
   input        clk,     // Top level system clock input.
   input        resetn,
   input        print_input_n,
-  input [3:0]  sw,
+  input [3:0]  sw, // sw[0] = load data
   input  wire uart_rxd, // UART Recieve pin.
   output wire uart_txd  // UART transmit pin.
 );
@@ -89,20 +89,70 @@ module top (
     .uart_tx_data (uart_tx_data ) 
   );
 
-  // // logic [7:0] input_chars [16384];
-  // logic [7:0] input_chars [128];
+  logic wr_en, rd_en;
+  logic [7:0] wr_data, rd_data;
+  logic [$clog2(4096)-1:0] wr_addr, wr_addr_next, rd_addr, rd_addr_next;
+  mem_wrapper mem (
+    .clk(clk),
+    .wr_en(wr_en),
+    .wr_data(wr_data),
+    .wr_addr(wr_addr),
+    .rd_en(rd_en),
+    .rd_addr(rd_addr),
+    .rd_data(rd_data)
+  );
 
-  // typedef enum {
-    // IDLE,
-    // LOAD,
-    // WAIT_RCV_CHAR,
+
+  typedef enum {
+    IDLE,
+    LOAD,
+    PRINT
     // SOLVE,
     // OUTPUT_DATA,
     // WAIT_SEND_CHAR,
     // OUTPUT_SOL
-  // } e_state;
+  } e_state;
+  e_state state_r, state_next;
 
-  // e_state state_r, state_next;
+  always_ff @(posedge clk) wr_addr <= wr_addr_next;
+  always_ff @(posedge clk) rd_addr <= rd_addr_next;
+  always_ff @(posedge clk) state_r <= state_next;
+
+
+  always_comb begin
+    state_next   = state_r;
+    wr_en        = uart_rx_valid && sw[0];
+    wr_addr_next = wr_addr;
+    wr_data      = uart_rx_data;
+    rd_en        = 1'b0;
+    case (state_r) 
+      IDLE: begin
+        wr_addr_next = '0;
+        if (wr_en) begin 
+          state_next = LOAD;
+          wr_addr_next = wr_addr + wr_en;
+        end
+        else if (!print_input_n) begin
+          state_next = PRINT;
+          rd_addr_next = rd_addr + 1'b1;
+          rd_en = 1'b1;
+        end
+      end
+      LOAD: begin
+        if (wr_en) begin
+          wr_addr_next = wr_addr + wr_en;
+          if (wr_data == 8'h04) state_next = IDLE;
+        end
+      end
+      PRINT: begin
+        rd_en = 1'b1;
+        state_next = (rd_data == 8'h04) ? IDLE : PRINT;
+        rd_addr_next = rd_addr + 1'b1;
+      end
+
+    endcase
+  end
+
   // logic [$clog2(128)-1:0] char_cnt_r, char_cnt_next;
   // logic [7:0] char_r, char_next;
   // logic load_char;

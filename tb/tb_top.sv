@@ -117,8 +117,9 @@ module tb_top;
     // Test sequence
     // ---------------------------------------------
     initial begin
-        uart_rxd = 1'b1;
-        resetn   = 1'b0;
+        uart_rxd      = 1'b1;
+        resetn        = 1'b0;
+        print_input_n = 1'b1;
 
         // Let the clock/baud settle
         repeat (10) @(posedge clk);
@@ -127,8 +128,15 @@ module tb_top;
         // Wait a little before sending data
         repeat (20) @(posedge clk);
 
+        sw[0] = 1;
         send_input("sim/stimulus/01/input/example_01.txt");
         // send_input("sim/stimulus/01/input/input_01.txt");
+        repeat (1000) @(posedge clk);
+        print_input_n = 1'b0;
+        @(posedge clk);
+        print_input_n = 1'b1;
+        repeat (1000) @(posedge clk);
+        
 
         $display("Simulation finished at time %t", $time);
         $finish;
@@ -138,15 +146,19 @@ module tb_top;
     // DUT
     // ---------------------------------------------
     wire uart_txd;
+    logic [3:0] sw;
+    logic print_input_n;
 
     top #(
         .BIT_RATE(BIT_RATE),
         .CLK_HZ  (CLK_HZ)
     ) i_dut (
-        .clk      (clk),
-        .resetn   (resetn),
-        .uart_rxd (uart_rxd),
-        .uart_txd (uart_txd)
+        .clk          (clk),
+        .resetn       (resetn),
+        .print_input_n(print_input_n),
+        .sw           (sw),
+        .uart_rxd     (uart_rxd),
+        .uart_txd     (uart_txd)
     );
 
 endmodule
