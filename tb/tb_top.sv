@@ -129,7 +129,8 @@ module tb_top;
         repeat (20) @(posedge clk);
 
         sw[0] = 1;
-        send_input("sim/stimulus/01/input/example_01.txt");
+        send_input("sim/stimulus/example_transmission.bin");
+        // send_input("sim/stimulus/01/input/example_01.txt");
         // send_input("sim/stimulus/01/input/input_01.txt");
         repeat (1000) @(posedge clk);
         print_input_n = 1'b0;

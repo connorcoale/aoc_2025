@@ -31,9 +31,12 @@ module top (
   output wire uart_txd  // UART transmit pin.
 );
   // Clock frequency in hertz.
-  parameter CLK_HZ       = 100000000;
-  parameter BIT_RATE     = 115200;
-  parameter PAYLOAD_BITS = 8;
+  parameter CLK_HZ        = 100000000;
+  parameter BIT_RATE      = 115200;
+  parameter PAYLOAD_BITS  = 8;
+  parameter BRAM_TOT_SIZE = 204_800; // bytes
+  parameter BRAM_ADDR_W   = $clog2(BRAM_TOT_SIZE);
+  parameter ADVENT_N      = 12;
 
   wire [PAYLOAD_BITS-1:0] uart_rx_data;
   wire                    uart_rx_valid;
@@ -49,6 +52,28 @@ module top (
   wire print_input;
   assign print_input = !print_input_n;
 
+  // Set up a small reg file pointing to the day mem base addresses
+  logic [BRAM_ADDR_W-1:0]      day_mem_addr[ADVENT_N];
+  logic [BRAM_ADDR_W-1:0]      day_mem_addr_next[ADVENT_N];
+  logic [$clog2(ADVENT_N)-1:0] day_mem_ptr, day_mem_ptr_next;
+  genvar i;
+  for (i = 0; i < ADVENT_N; i++) begin
+    always_ff @(posedge clk or negedge resetn) begin
+      if (!resetn) day_mem_addr[i] <= '0;
+      else day_mem_addr[i] <= day_mem_addr_next[i];
+    end
+  end
+
+  task automatic set_default_day_mem();
+    for (int i = 0; i <= ADVENT_N; i++) begin
+      day_mem_addr_next[i] = day_mem_addr[i];
+    end
+  endtask
+
+  always_ff @(posedge clk or negedge resetn) begin
+    if (!resetn) day_mem_ptr <= '0;
+    else         day_mem_ptr <= day_mem_ptr_next;
+  end
 
   // UART RX
   uart_rx #(
@@ -91,7 +116,7 @@ module top (
 
   logic wr_en, rd_en;
   logic [7:0] wr_data, rd_data;
-  logic [$clog2(4096)-1:0] wr_addr, wr_addr_next, rd_addr, rd_addr_next;
+  logic [BRAM_ADDR_W-1:0] wr_addr, wr_addr_next, rd_addr, rd_addr_next;
   mem_wrapper mem (
     .clk(clk),
     .wr_en(wr_en),
@@ -102,11 +127,10 @@ module top (
     .rd_data(rd_data)
   );
 
-
   typedef enum {
     IDLE,
     LOAD,
-    PRINT
+    READ_MEM
     // SOLVE,
     // OUTPUT_DATA,
     // WAIT_SEND_CHAR,
@@ -114,17 +138,20 @@ module top (
   } e_state;
   e_state state_r, state_next;
 
-  always_ff @(posedge clk) wr_addr <= wr_addr_next;
-  always_ff @(posedge clk) rd_addr <= rd_addr_next;
-  always_ff @(posedge clk) state_r <= state_next;
+  always_ff @(posedge clk) wr_addr     <= wr_addr_next;
+  always_ff @(posedge clk) rd_addr     <= rd_addr_next;
+  always_ff @(posedge clk) state_r     <= state_next;
+
 
 
   always_comb begin
-    state_next   = state_r;
-    wr_en        = uart_rx_valid && sw[0];
-    wr_addr_next = wr_addr;
-    wr_data      = uart_rx_data;
-    rd_en        = 1'b0;
+    state_next       = state_r;
+    wr_en            = uart_rx_valid && sw[0];
+    wr_addr_next     = wr_addr;
+    wr_data          = uart_rx_data;
+    rd_en            = 1'b0;
+    day_mem_ptr_next = day_mem_ptr;
+    set_default_day_mem();
     case (state_r) 
       IDLE: begin
         wr_addr_next = '0;
@@ -132,8 +159,8 @@ module top (
           state_next = LOAD;
           wr_addr_next = wr_addr + wr_en;
         end
-        else if (!print_input_n) begin
-          state_next = PRINT;
+        else if (print_input) begin
+          state_next = READ_MEM;
           rd_addr_next = rd_addr + 1'b1;
           rd_en = 1'b1;
         end
@@ -141,12 +168,16 @@ module top (
       LOAD: begin
         if (wr_en) begin
           wr_addr_next = wr_addr + wr_en;
-          if (wr_data == 8'h04) state_next = IDLE;
+          if (wr_data == 8'h03) begin
+            day_mem_addr_next[day_mem_ptr] = wr_addr;
+            day_mem_ptr_next = day_mem_ptr + 1;
+          end
+          else if (wr_data == 8'h04) state_next = IDLE;
         end
       end
-      PRINT: begin
+      READ_MEM: begin
         rd_en = 1'b1;
-        state_next = (rd_data == 8'h04) ? IDLE : PRINT;
+        state_next = (rd_data == 8'h04) ? IDLE : READ_MEM;
         rd_addr_next = rd_addr + 1'b1;
       end
 
