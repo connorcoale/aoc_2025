@@ -34,7 +34,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Concatenate AoC input files with ETX and EOT markers"
     )
-    group = parser.add_mutually_exclusive_group(required=True)
+    group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument("--range", help="Range of days, e.g. 1-12")
     group.add_argument("--list", help="Comma-separated days, e.g. 1,3,7,12")
     parser.add_argument("-o", "--output", default="transmission.bin")
@@ -43,8 +43,10 @@ def main():
 
     if args.range:
         days = parse_range(args.range)
-    else:
+    elif args.list:
         days = parse_list(args.list)
+    else:
+        days = list(range(1, 13))
 
     output = bytearray()
     found = 0
