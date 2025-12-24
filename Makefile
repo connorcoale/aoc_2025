@@ -5,7 +5,7 @@ TB_TOP = tb_top
 # SOURCE FILE DEFINITIONS (plus dependencies)
 SOURCES    = src/top.sv src/part_01.sv
 DEPS       =
-LIBS       = src/lib/uart/uart_rx.sv src/lib/uart/uart_tx.sv src/lib/mem/mem_wrapper.sv
+LIBS       = src/lib/uart/uart_rx.sv src/lib/uart/uart_tx.sv src/lib/mem/mem_arty_4kb_wrapper.sv src/lib/mem/mem_arty_205kb_wrapper.sv
 
 # VERILATOR DEFINITIONS
 SIM_RESDIR = sim/verilated
@@ -44,10 +44,10 @@ compile_sim_all:
 	echo "not yet implemented"
 
 
-$(SIM_RESDIR)/V$(SIM_TOP): compile_sim
+$(SIM_RESDIR)/V$(SIM_TOP): compile_sim_top
 	echo "compiling sim_top"
 
-$(SIM_RESDIR)/V$(SIM_PART_01): compile_sim
+$(SIM_RESDIR)/V$(SIM_PART_01): compile_sim_01
 	echo "compiling sim_01"
 
 run_sim_top: $(SIM_RESDIR)/V$(SIM_TOP)

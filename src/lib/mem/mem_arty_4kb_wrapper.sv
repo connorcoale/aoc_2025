@@ -18,11 +18,11 @@
  */
 
 /*
- *  mem_wrapper.sv
- *  Top module for solving Advent of Code 2025
+ *  mem_arty_4kb_wrapper.sv
+ *  Wrapper for a single 4096x8 memory for inferrence in arty
 */
 
-module mem_wrapper #(
+module mem_arty_4kb_wrapper #(
   parameter integer WIDTH = 8,
   parameter integer DEPTH = 4096
 ) (

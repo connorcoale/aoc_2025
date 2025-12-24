@@ -5,6 +5,7 @@ import re
 import argparse
 from pathlib import Path
 
+STX = b'\x02'  # ASCII 0x02
 ETX = b'\x03'  # ASCII 0x03
 EOT = b'\x04'  # ASCII 0x04
 
@@ -46,9 +47,10 @@ def main():
     elif args.list:
         days = parse_list(args.list)
     else:
-        days = list(range(1, 13))
+        days = list(range(1, 13)) # 1 to 12 inclusive
 
     output = bytearray()
+    output.extend(STX)
     found = 0
 
     for day in days:

@@ -108,7 +108,7 @@ module tb_top;
         end
 
         // Send EOT (Ctrl-D)
-        send_byte(8'h04);
+        // send_byte(8'h04);
 
         $fclose(fd);
     endtask
@@ -128,15 +128,14 @@ module tb_top;
         // Wait a little before sending data
         repeat (20) @(posedge clk);
 
-        sw[0] = 1;
-        send_input("sim/stimulus/example_transmission.bin");
-        // send_input("sim/stimulus/01/input/example_01.txt");
-        // send_input("sim/stimulus/01/input/input_01.txt");
-        repeat (1000) @(posedge clk);
+        // send_input("sim/stimulus/example_transmission.bin");
+        // send_input("sim/stimulus/transmission.bin");
+        send_input("sim/stimulus/transmission1-2.bin");
+        repeat (100) @(posedge clk);
         print_input_n = 1'b0;
         @(posedge clk);
         print_input_n = 1'b1;
-        repeat (1000) @(posedge clk);
+        repeat (100) @(posedge clk);
         
 
         $display("Simulation finished at time %t", $time);
@@ -147,7 +146,6 @@ module tb_top;
     // DUT
     // ---------------------------------------------
     wire uart_txd;
-    logic [3:0] sw;
     logic print_input_n;
 
     top #(

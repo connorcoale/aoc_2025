@@ -117,7 +117,16 @@ module top (
   logic wr_en, rd_en;
   logic [7:0] wr_data, rd_data;
   logic [BRAM_ADDR_W-1:0] wr_addr, wr_addr_next, rd_addr, rd_addr_next;
-  mem_wrapper mem (
+  // mem_arty_4kb_wrapper mem (
+    // .clk(clk),
+    // .wr_en(wr_en),
+    // .wr_data(wr_data),
+    // .wr_addr(wr_addr),
+    // .rd_en(rd_en),
+    // .rd_addr(rd_addr),
+    // .rd_data(rd_data)
+  // );
+  mem_arty_205kb mem (
     .clk(clk),
     .wr_en(wr_en),
     .wr_data(wr_data),
@@ -144,9 +153,10 @@ module top (
 
 
 
+  wire start_transmission_rx = uart_rx_valid && uart_rx_data == 8'h02; // STX ascii character
   always_comb begin
     state_next       = state_r;
-    wr_en            = uart_rx_valid && sw[0];
+    wr_en            = uart_rx_valid && !start_transmission_rx; // don't save the STX char
     wr_addr_next     = wr_addr;
     wr_data          = uart_rx_data;
     rd_en            = 1'b0;
@@ -155,10 +165,7 @@ module top (
     case (state_r) 
       IDLE: begin
         wr_addr_next = '0;
-        if (wr_en) begin 
-          state_next = LOAD;
-          wr_addr_next = wr_addr + wr_en;
-        end
+        if (start_transmission_rx) state_next = LOAD;
         else if (print_input) begin
           state_next = READ_MEM;
           rd_addr_next = rd_addr + 1'b1;
