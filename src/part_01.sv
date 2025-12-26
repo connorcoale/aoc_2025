@@ -30,7 +30,8 @@ module part_01 #(
   input cs,
   input [7:0] data,
   input data_valid,
-  output [7:0] solution,
+  output [31:0] solution_a,
+  output [31:0] solution_b,
   output solution_valid
 );
 
@@ -41,8 +42,9 @@ module part_01 #(
     .clk(clk),
     .reset(reset),
     .data(data),
-    .data_valid(data_valid),
-    .solution(solution),
+    .data_valid(data_valid && cs),
+    .solution_a(solution_a),
+    .solution_b(solution_b),
     .solution_valid(solution_valid)
   );
 
@@ -57,23 +59,25 @@ module solve_01 #(
   parameter MAX_TWISTED_DIAL   = MAX_TWIST + MAX_DIAL,
   parameter MAX_TWISTED_DIAL_W = $clog2(MAX_TWISTED_DIAL) + 1
 ) (
-  input        clk,
-  input        reset,
-  input [7:0]  data,
-  input        data_valid,
-  output [7:0] solution,
-  output       solution_valid
+  input         clk,
+  input         reset,
+  input [7:0]   data,
+  input         data_valid,
+  output [31:0] solution_a,
+  output [31:0] solution_b,
+  output reg    solution_valid
 );
 
   typedef enum {
     IDLE,
-    TWIST
+    TWIST,
+    DONE
   } e_state;
 
   e_state state_r, state_next;
-  logic signed   [MAX_TWIST_W-1:0]        twist_r, twist_next;
-  logic unsigned [MAX_DIAL_W-1:0]         dial_r, dial_out, dial_next;
-  logic                                   cw_r, cw_next;
+  logic signed   [MAX_TWIST_W-1:0] twist_r, twist_next;
+  logic unsigned [MAX_DIAL_W-1:0]  dial_r, dial_out, dial_next;
+  logic                            cw_r, cw_next;
 
   logic ends_at_zero;
   logic [$clog2(10)-1:0] zero_passes;
@@ -91,10 +95,11 @@ module solve_01 #(
   );
 
   always_comb begin
-    state_next = state_r;
-    twist_next = twist_r;
-    dial_next  = dial_r;
-    cw_next    = cw_r;
+    state_next     = state_r;
+    twist_next     = twist_r;
+    dial_next      = dial_r;
+    cw_next        = cw_r;
+    solution_valid = 1'b0;
     case (state_r)
       IDLE : begin
         if (data_valid) begin
@@ -130,9 +135,12 @@ module solve_01 #(
           end
         end
       end
+      DONE: begin
+        solution_valid = 1'b1;
+      end
     endcase
-    if (state_r == TWIST && data_valid && data == 8'h04) begin
-      state_next = IDLE;
+    if (state_r == TWIST && data_valid && data == 8'h03) begin
+      state_next = DONE;
     end
   end
 
@@ -173,6 +181,8 @@ module solve_01 #(
     if (reset) times_pointing_at_zero_r <= '0;
     else times_pointing_at_zero_r <= times_pointing_at_zero_next;
   end
+  assign solution_a = ends_at_zero_r;
+  assign solution_b = times_pointing_at_zero_r;
 endmodule
 
 module safe_twister #(
@@ -220,21 +230,21 @@ module safe_twister #(
   end
 
   // Determine what the new dial number is without using
-  // modulo operator
+  // modulo operator, as it takes a lot of hardware resources
   logic neg, mult_of_100;
   logic signed [MAX_TWISTED_DIAL_W-1:0] modulo_adjustment;
   logic [MAX_DIAL_W:0] dial_neg, dial_pos;
   assign neg = twisted_dial_total < 0;
   assign mult_of_100 = twisted_dial_total == 'd100  ||
-                 twisted_dial_total == 'd200  || 
-                 twisted_dial_total == 'd300  || 
-                 twisted_dial_total == 'd400  || 
-                 twisted_dial_total == 'd500  || 
-                 twisted_dial_total == 'd600  || 
-                 twisted_dial_total == 'd700  || 
-                 twisted_dial_total == 'd800  || 
-                 twisted_dial_total == 'd900  || 
-                 twisted_dial_total == 'd1000;
+                       twisted_dial_total == 'd200  || 
+                       twisted_dial_total == 'd300  || 
+                       twisted_dial_total == 'd400  || 
+                       twisted_dial_total == 'd500  || 
+                       twisted_dial_total == 'd600  || 
+                       twisted_dial_total == 'd700  || 
+                       twisted_dial_total == 'd800  || 
+                       twisted_dial_total == 'd900  || 
+                       twisted_dial_total == 'd1000;
   // Value to add or subtract to get back in the range [0, 100]
   // Need to account for special case when the twisted_dial_total
   // was a positive multiple of 100

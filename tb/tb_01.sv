@@ -22,7 +22,7 @@ module tb_01 ();
   logic reset;
   logic [7:0] data;
   logic data_valid;
-  logic [7:0] solution;
+  logic [31:0] solution_a, solution_b;
   logic solution_valid;
 
   initial begin
@@ -35,7 +35,8 @@ module tb_01 ();
     .reset(reset),
     .data(data),
     .data_valid(data_valid),
-    .solution(solution),
+    .solution_a(solution_a),
+    .solution_b(solution_b),
     .solution_valid(solution_valid)
   );
   initial begin

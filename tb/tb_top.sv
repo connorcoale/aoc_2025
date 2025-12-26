@@ -120,6 +120,8 @@ module tb_top;
         uart_rxd      = 1'b1;
         resetn        = 1'b0;
         print_input_n = 1'b1;
+        solve_day_n   = 1'b1;
+        sw            = '0;
 
         // Let the clock/baud settle
         repeat (10) @(posedge clk);
@@ -136,7 +138,14 @@ module tb_top;
         @(posedge clk);
         print_input_n = 1'b1;
         repeat (100) @(posedge clk);
-        
+
+
+        repeat (50000) @(posedge clk);
+        sw = 4'd01;
+        solve_day_n = 1'b0;
+        @(posedge clk);
+        solve_day_n = 1'b1;
+        repeat (50000) @(posedge clk);
 
         $display("Simulation finished at time %t", $time);
         $finish;
@@ -147,6 +156,8 @@ module tb_top;
     // ---------------------------------------------
     wire uart_txd;
     logic print_input_n;
+    logic solve_day_n;
+    logic [3:0] sw;
 
     top #(
         .BIT_RATE(BIT_RATE),
@@ -155,6 +166,7 @@ module tb_top;
         .clk          (clk),
         .resetn       (resetn),
         .print_input_n(print_input_n),
+        .solve_day_n  (solve_day_n),
         .sw           (sw),
         .uart_rxd     (uart_rxd),
         .uart_txd     (uart_txd)
