@@ -25,6 +25,11 @@ SIM_PART_01     = tb_01
 SIM_TOP_FILE_01 = tb/tb_01.sv
 SIM_DUT_FILE_01 = -f src/part_01.f
 
+SIM_SOURCES_S2C = src/lib/bin2bcd.sv src/lib/solution2char.sv
+SIM_S2C         = tb_solution2char
+SIM_TOP_FILE    = tb/tb_solution2char.sv
+SIM_DUT         = $(SIM_SOURCES_S2C)
+
 .PHONY: clean compile_sim run_sim generate_bitstream flash_bitstream
 
 clean: 
@@ -40,6 +45,9 @@ compile_sim_top: $(SOURCES) $(DEPS) $(SIM_SOURCES) $(TB_DEPS)
 compile_sim_01: $(SOURCES) $(DEPS) $(SIM_SOURCES_01) $(TB_DEPS)
 	$(SIM_TOOL) $(SIM_FLAGS) $(DEPS) $(SIM_SOURCES_01) $(TB_DEPS) -Isrc $(SIM_DUT_FILE_01)
 
+compile_sim_s2c:                   $(SIM_SOURCES_S2C) $(SIM_TOP_FILE)
+	$(SIM_TOOL) $(SIM_FLAGS) $(SIM_TOP_FILE) -Isrc $(SIM_SOURCES_S2C)
+
 compile_sim_all:
 	echo "not yet implemented"
 
@@ -50,11 +58,17 @@ $(SIM_RESDIR)/V$(SIM_TOP): compile_sim_top
 $(SIM_RESDIR)/V$(SIM_PART_01): compile_sim_01
 	echo "compiling sim_01"
 
+$(SIM_RESDIR)/V$(SIM_S2C): compile_sim_s2c
+	echo "compiling sim_s2c"
+
 run_sim_top: $(SIM_RESDIR)/V$(SIM_TOP)
 	$(SIM_RESDIR)/V$(SIM_TOP)
 
 run_sim_01: $(SIM_RESDIR)/V$(SIM_PART_01)
 	$(SIM_RESDIR)/V$(SIM_PART_01)
+
+run_sim_s2c: $(SIM_RESDIR)/V$(SIM_S2C)
+	$(SIM_RESDIR)/V$(SIM_S2C)
 
 generate_bitstream: fpga/arty-a7-35t/compile.tcl
 	vivado -mode batch -source fpga/arty-a7-35t/compile.tcl
