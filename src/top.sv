@@ -27,6 +27,7 @@ module top (
   input        resetn,
   input        print_input_n, // Simulation input to read all the memories
   input        solve_day_n,   // Button to press to solve the puzzle indicated by switches
+  input        print_soln_n,
   input [3:0]  sw,            // Switches to select puzzle
   input  wire  uart_rxd,      // UART Recieve pin.
   output wire  uart_txd       // UART transmit pin.
@@ -47,13 +48,14 @@ module top (
 
   assign uart_rx_en = 1'b1;
 
-  wire                    uart_tx_busy;
-  wire [PAYLOAD_BITS-1:0] uart_tx_data;
-  wire                    uart_tx_en;
+  wire                     uart_tx_busy;
+  logic [PAYLOAD_BITS-1:0] uart_tx_data;
+  logic                    uart_tx_en;
 
   // Input signals
   wire print_input = !print_input_n;
   wire solve_day   = !solve_day_n;
+  wire print_soln  = !print_soln_n;
 
   // UART Receiver module
   uart_rx #(
@@ -101,16 +103,36 @@ module top (
   wire [7:0] data = rd_data;
   logic data_valid;
 
+  wire [31:0] solutions[12][2];
   part_01 inst_part_01 (
     .clk(clk),
     .reset(reset),
     .cs(cs01),
     .data(data),
     .data_valid(data_valid),
-    .solution_a(solution_a),
-    .solution_b(solution_b),
+    .solution_a(solutions[0][0]),
+    .solution_b(solutions[0][1]),
     .solution_valid(solution_valid)
   );
+
+  wire [31:0] solution_a = solutions[sw - 1][0];
+  wire [31:0] solution_b = solutions[sw - 1][1];
+  logic convert;
+  logic done_tx;
+  logic [7:0] message [32];
+  logic done_converting;
+  solution2char inst_solution2char (
+    .clk(clk),
+    .resetn(resetn),
+    .solution_a(solution_a),
+    .solution_b(solution_b),
+    .day(sw),
+    .convert(convert),
+    .done_tx(done_tx),
+    .message(message),
+    .done(done_converting)
+  );
+
 
   // Set up a small reg file pointing to the day mem base addresses
   logic [BRAM_ADDR_W-1:0]      day_mem_addr[ADVENT_N];
@@ -141,7 +163,9 @@ module top (
     LOAD,
     READ_MEM,
     SOLVE_01,
-    TX
+    CONVERT_SOLN,
+    TX_CHAR,
+    WAIT_TX
     // SOLVE,
     // OUTPUT_DATA,
     // WAIT_SEND_CHAR,
@@ -149,9 +173,11 @@ module top (
   } e_state;
   e_state state_r, state_next;
 
-  always_ff @(posedge clk) wr_addr <= wr_addr_next;
-  always_ff @(posedge clk) rd_addr <= rd_addr_next;
-  always_ff @(posedge clk) state_r <= state_next;
+  logic [4:0] msg_char, msg_char_next;
+  always_ff @(posedge clk) wr_addr  <= wr_addr_next;
+  always_ff @(posedge clk) rd_addr  <= rd_addr_next;
+  always_ff @(posedge clk) state_r  <= state_next;
+  always_ff @(posedge clk) msg_char <= msg_char_next;
 
 
 
@@ -166,6 +192,10 @@ module top (
     cs01             = 1'b0;
     data_valid       = 1'b0;
     set_default_day_mem();
+    convert          = 1'b0;
+    msg_char_next    = '0;
+    uart_tx_data     = '0;
+    uart_tx_en       = 1'b0;
     case (state_r) 
       IDLE: begin
         wr_addr_next = '0;
@@ -177,6 +207,11 @@ module top (
         else if (sw == 4'd1 && solve_day) begin
           rd_addr_next = day_mem_addr[0];
           state_next   = SOLVE_01;
+        end
+        else if (print_soln) begin
+          if (1 <= sw && sw <= 12) begin
+            state_next = CONVERT_SOLN;
+          end
         end
       end
       LOAD: begin
@@ -204,8 +239,26 @@ module top (
 
         state_next   = (rd_data != 8'h03) ? SOLVE_01 : IDLE;        
       end
-      TX: begin
-
+      CONVERT_SOLN: begin
+        convert = 1'b1;
+        if (done_converting) state_next = TX_CHAR;
+      end
+      TX_CHAR: begin
+        convert = 1'b1;
+        uart_tx_data = message[msg_char];
+        uart_tx_en = 1'b1;
+        msg_char_next = msg_char + 1;
+        state_next = WAIT_TX;
+      end
+      WAIT_TX: begin
+        convert = 1'b1;
+        uart_tx_data = message[msg_char];
+        uart_tx_en = 1'b1;
+        msg_char_next = msg_char;
+        if (!uart_tx_busy) begin
+          if (msg_char < 'd31) state_next = TX_CHAR;
+          else                 state_next = IDLE;
+        end else state_next = WAIT_TX;
       end
     endcase
   end
