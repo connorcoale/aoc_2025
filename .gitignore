@@ -26,3 +26,7 @@ build/
 
 # can't upload your input!
 sim/stimulus/[01][0-9]/input_*.txt
+
+# Chisel
+*.bsp
+*scala-build
