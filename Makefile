@@ -3,9 +3,9 @@ TOP    = top
 TB_TOP = tb_top
 
 # SOURCE FILE DEFINITIONS (plus dependencies)
-SOURCES    = src/top.sv src/part_01.sv
+SOURCES    = src/top.sv src/part_01.sv src/solution2char.sv
 DEPS       =
-LIBS       = src/lib/uart/uart_rx.sv src/lib/uart/uart_tx.sv src/lib/mem/mem_arty_4kb_wrapper.sv src/lib/mem/mem_arty_205kb_wrapper.sv lib/solution2char.sv lib/bin2bcd.sv
+LIBS       = src/lib/uart/uart_rx.sv src/lib/uart/uart_tx.sv src/lib/mem/mem_arty_4kb_wrapper.sv src/lib/mem/mem_arty_205kb_wrapper.sv lib/bin2bcd/bin2bcd.sv
 
 # VERILATOR DEFINITIONS
 SIM_RESDIR = sim/verilated
@@ -25,7 +25,7 @@ SIM_PART_01     = tb_01
 SIM_TOP_FILE_01 = tb/tb_01.sv
 SIM_DUT_FILE_01 = -f src/part_01.f
 
-SIM_SOURCES_S2C = src/lib/bin2bcd.sv src/lib/solution2char.sv
+SIM_SOURCES_S2C = src/lib/bin2bcd/bin2bcd.sv src/solution2char.sv
 SIM_S2C         = tb_solution2char
 SIM_TOP_FILE    = tb/tb_solution2char.sv
 SIM_DUT         = $(SIM_SOURCES_S2C)
