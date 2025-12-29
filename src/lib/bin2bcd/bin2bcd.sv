@@ -23,7 +23,7 @@
 */
 
 module bin2bcd (
-  input clk,
+  input clock,
   input resetn,
   input convert,
   input [31:0] data,
@@ -32,13 +32,13 @@ module bin2bcd (
 ); 
 
   logic [5:0] cnt, cnt_next;
-  always_ff @(posedge clk or negedge resetn) begin
+  always_ff @(posedge clock or negedge resetn) begin
     if (!resetn) cnt <= '0;
     else         cnt <= cnt_next;
   end
 
   logic [31:0] data_r, data_next;
-  always_ff @(posedge clk) data_r <= data_next;
+  always_ff @(posedge clock) data_r <= data_next;
   
   typedef enum {
     IDLE,
@@ -47,7 +47,7 @@ module bin2bcd (
   } e_state;
   e_state state_r, state_next;
 
-  always_ff @(posedge clk or negedge resetn) begin
+  always_ff @(posedge clock or negedge resetn) begin
     if (!resetn) state_r <= IDLE;
     else         state_r <= state_next;
   end
@@ -106,7 +106,7 @@ module bin2bcd (
       nibbles_next = nibbles;
     end
   end
-  always_ff @(posedge clk) begin
+  always_ff @(posedge clock) begin
     nibbles <= nibbles_next;
   end
 

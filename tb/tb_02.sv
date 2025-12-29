@@ -18,7 +18,7 @@
  */
 
 module tb_02 ();
-  logic clk;
+  logic clock;
   logic reset;
   logic cs;
   logic [7:0] data;
@@ -32,7 +32,7 @@ module tb_02 ();
   end
 
   part_02 dut (
-    .clock(clk),
+    .clock(clock),
     .reset(reset),
     .cs(cs),
     .data(data),
@@ -42,13 +42,13 @@ module tb_02 ();
     .solution_valid(solution_valid)
   );
   initial begin
-    clk = 1'b0;
+    clock = 1'b0;
     forever begin
-      #1 clk = !clk;
+      #1 clock = !clock;
     end
   end
 
-  clocking cb @(posedge clk);
+  clocking cb @(posedge clock);
       output #0 reset, data_valid, data, cs;
   endclocking
 

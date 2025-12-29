@@ -26,7 +26,7 @@ module mem_arty_4kb_wrapper #(
   parameter integer WIDTH = 8,
   parameter integer DEPTH = 4096
 ) (
-  input clk,
+  input clock,
   input wr_en,
   input [WIDTH-1:0] wr_data,
   input [$clog2(DEPTH)-1:0] wr_addr,
@@ -38,7 +38,7 @@ module mem_arty_4kb_wrapper #(
   logic [WIDTH-1:0] mem [DEPTH];
   logic [WIDTH-1:0] mem_rd_data;
 
-  always_ff @(posedge clk) begin
+  always_ff @(posedge clock) begin
     if (wr_en) begin
       mem[wr_addr] <= wr_data;
     end

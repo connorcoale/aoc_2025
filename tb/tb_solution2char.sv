@@ -19,7 +19,7 @@
 `timescale 1ns/1ns
 
 module tb_solution2char;
-  logic clk;
+  logic clock;
   logic resetn;
   logic [31:0] solution_a, solution_b;
   logic [3:0] day;
@@ -32,8 +32,8 @@ module tb_solution2char;
   // Clock generation
   // ------------------------------------------------------------
   initial begin
-    clk = 1'b0;
-    forever #1 clk = ~clk;
+    clock = 1'b0;
+    forever #1 clock = ~clock;
   end
 
   // ------------------------------------------------------------
@@ -41,7 +41,7 @@ module tb_solution2char;
   //   - Drives inputs AFTER posedge
   //   - Samples outputs AFTER posedge
   // ------------------------------------------------------------
-  clocking cb @(posedge clk);
+  clocking cb @(posedge clock);
     default output #0;
     output resetn;
     output solution_a;
@@ -57,7 +57,7 @@ module tb_solution2char;
   // DUT
   // ------------------------------------------------------------
   solution2char solution2char (
-    .clk(clk),
+    .clock(clock),
     .resetn(resetn),
     .solution_a(solution_a),
     .solution_b(solution_b),

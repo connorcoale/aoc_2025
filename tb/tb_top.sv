@@ -15,7 +15,7 @@ module tb_top;
     // ---------------------------------------------
     // Clock & UART Inputs
     // ---------------------------------------------
-    reg clk;
+    reg clock;
     reg resetn;
     reg uart_rxd;
 
@@ -42,8 +42,8 @@ module tb_top;
     // ---------------------------------------------
     // Clock generation
     // ---------------------------------------------
-    initial clk = 1'b0;
-    always #(CLK_P/2) clk = ~clk;
+    initial clock = 1'b0;
+    always #(CLK_P/2) clock = ~clock;
 
     // ---------------------------------------------
     // Baud tick generator (1-cycle tick)
@@ -51,7 +51,7 @@ module tb_top;
     int cnt;
     reg baud;
 
-    always_ff @(posedge clk or negedge resetn) begin
+    always_ff @(posedge clock or negedge resetn) begin
         if (!resetn) begin
             cnt  <= 0;
             baud <= 0;
@@ -125,33 +125,33 @@ module tb_top;
         sw            = '0;
 
         // Let the clock/baud settle
-        repeat (10) @(posedge clk);
+        repeat (10) @(posedge clock);
         resetn = 1'b1;
 
         // Wait a little before sending data
-        repeat (20) @(posedge clk);
+        repeat (20) @(posedge clock);
 
         // send_input("sim/stimulus/example_transmission.bin");
         // send_input("sim/stimulus/transmission.bin");
         send_input("sim/stimulus/transmission1-2.bin");
-        repeat (100) @(posedge clk);
+        repeat (100) @(posedge clock);
         print_input_n = 1'b0;
-        @(posedge clk);
+        @(posedge clock);
         print_input_n = 1'b1;
-        repeat (100) @(posedge clk);
+        repeat (100) @(posedge clock);
 
 
-        repeat (50000) @(posedge clk);
+        repeat (50000) @(posedge clock);
         sw = 4'd01;
         solve_day_n = 1'b0;
-        @(posedge clk);
+        @(posedge clock);
         solve_day_n = 1'b1;
-        repeat (50000) @(posedge clk);
+        repeat (50000) @(posedge clock);
         sw = 4'd1;
         print_soln_n = 1'b0;
-        @(posedge clk);
+        @(posedge clock);
         print_soln_n = 1'b1;
-        repeat (10000) @(posedge clk);
+        repeat (10000) @(posedge clock);
 
 
         $display("Simulation finished at time %t", $time);
@@ -171,7 +171,7 @@ module tb_top;
         .BIT_RATE(BIT_RATE),
         .CLK_HZ  (CLK_HZ)
     ) i_dut (
-        .clk          (clk),
+        .clock          (clock),
         .resetn       (resetn),
         .print_input_n(print_input_n),
         .solve_day_n  (solve_day_n),

@@ -25,7 +25,7 @@ module part_01 #(
   parameter MAX_DIAL           = 99,
   parameter MAX_TWIST          = 999
 ) (
-  input clk,
+  input clock,
   input reset,
   input cs,
   input [7:0] data,
@@ -39,7 +39,7 @@ module part_01 #(
     .MAX_DIAL(MAX_DIAL),
     .MAX_TWIST(MAX_TWIST)
   ) inst_solve_01 (
-    .clk(clk),
+    .clock(clock),
     .reset(reset),
     .data(data),
     .data_valid(data_valid && cs),
@@ -59,7 +59,7 @@ module solve_01 #(
   parameter MAX_TWISTED_DIAL   = MAX_TWIST + MAX_DIAL,
   parameter MAX_TWISTED_DIAL_W = $clog2(MAX_TWISTED_DIAL) + 1
 ) (
-  input         clk,
+  input         clock,
   input         reset,
   input [7:0]   data,
   input         data_valid,
@@ -145,7 +145,7 @@ module solve_01 #(
   end
 
   // Flopping of state signals
-  always_ff @(posedge clk or posedge reset) begin
+  always_ff @(posedge clock or posedge reset) begin
     if (reset) begin
       state_r <= IDLE; 
       twist_r <= '0;
@@ -167,7 +167,7 @@ module solve_01 #(
   assign twist_end = data_valid && (data == 8'h0A);
   assign inc_zero = twist_end && ends_at_zero;
   assign ends_at_zero_next = ends_at_zero_r + inc_zero;
-  always_ff @(posedge clk or posedge reset) begin
+  always_ff @(posedge clock or posedge reset) begin
     if (reset) ends_at_zero_r <= '0;
     else ends_at_zero_r <= ends_at_zero_next;
   end
@@ -177,7 +177,7 @@ module solve_01 #(
   logic [$clog2(11)-1:0] inc_pointing;
   assign inc_pointing = twist_end ? ends_at_zero + zero_passes : '0;
   assign times_pointing_at_zero_next = times_pointing_at_zero_r + inc_pointing;
-  always_ff @(posedge clk or posedge reset) begin
+  always_ff @(posedge clock or posedge reset) begin
     if (reset) times_pointing_at_zero_r <= '0;
     else times_pointing_at_zero_r <= times_pointing_at_zero_next;
   end

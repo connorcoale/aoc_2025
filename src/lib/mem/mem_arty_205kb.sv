@@ -27,7 +27,7 @@ module mem_arty_205kb #(
   parameter WIDTH = 8,
   parameter DEPTH = 4096 * N_ARTY_BRAM
 ) (
-  input clk,
+  input clock,
   input wr_en,
   input [WIDTH-1:0] wr_data,
   input [$clog2(DEPTH)-1:0] wr_addr,
@@ -58,7 +58,7 @@ module mem_arty_205kb #(
         .WIDTH(WIDTH),
         .DEPTH(4096)
       ) i_mem (
-        .clk(clk),
+        .clock(clock),
         .wr_en(block_wr_en[i]),
         .wr_addr(block_wr_addr),
         .wr_data(wr_data),
@@ -70,6 +70,6 @@ module mem_arty_205kb #(
   endgenerate
 
   logic [ID_WIDTH-1:0] block_rd_id_r;
-  always_ff @(posedge clk) block_rd_id_r <= block_rd_id;
+  always_ff @(posedge clock) block_rd_id_r <= block_rd_id;
   assign rd_data = block_rd_data[block_rd_id_r];
 endmodule

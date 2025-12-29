@@ -9,7 +9,7 @@
 //
 
 module uart_tx(
-input  wire         clk         , // Top level system clock input.
+input  wire         clock         , // Top level system clock input.
 input  wire         resetn      , // Asynchronous active low reset.
 output wire         uart_txd    , // UART transmit pin.
 output wire         uart_tx_busy, // Module busy sending previous item.
@@ -113,7 +113,7 @@ end
 //
 // Handle updates to the sent data register.
 integer i = 0;
-always @(posedge clk) begin : p_data_to_send
+always @(posedge clock) begin : p_data_to_send
     if(!resetn) begin
         data_to_send <= {PAYLOAD_BITS{1'b0}};
     end else if(fsm_state == FSM_IDLE && uart_tx_en) begin
@@ -128,7 +128,7 @@ end
 
 //
 // Increments the bit counter each time a new bit frame is sent.
-always @(posedge clk) begin : p_bit_counter
+always @(posedge clock) begin : p_bit_counter
     if(!resetn) begin
         bit_counter <= 4'b0;
     end else if(fsm_state != FSM_SEND && fsm_state != FSM_STOP) begin
@@ -145,7 +145,7 @@ end
 
 //
 // Increments the cycle counter when sending.
-always @(posedge clk) begin : p_cycle_counter
+always @(posedge clock) begin : p_cycle_counter
     if(!resetn) begin
         cycle_counter <= {COUNT_REG_LEN{1'b0}};
     end else if(next_bit) begin
@@ -160,7 +160,7 @@ end
 
 //
 // Progresses the next FSM state.
-always @(posedge clk) begin : p_fsm_state
+always @(posedge clock) begin : p_fsm_state
     if(!resetn) begin
         fsm_state <= FSM_IDLE;
     end else begin
@@ -171,7 +171,7 @@ end
 
 //
 // Responsible for updating the internal value of the txd_reg.
-always @(posedge clk) begin : p_txd_reg
+always @(posedge clock) begin : p_txd_reg
     if(!resetn) begin
         txd_reg <= 1'b1;
     end else if(fsm_state == FSM_IDLE) begin

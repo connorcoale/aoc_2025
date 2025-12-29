@@ -23,7 +23,7 @@
 */
 
 module top (
-  input        clk,
+  input        clock,
   input        resetn,
   input        print_input_n, // Simulation input to read all the memories
   input        solve_day_n,   // Button to press to solve the puzzle indicated by switches
@@ -63,7 +63,7 @@ module top (
     .PAYLOAD_BITS(PAYLOAD_BITS),
     .CLK_HZ  (CLK_HZ  )
   ) i_uart_rx(
-    .clk          (clk          ), // Top level system clock input.
+    .clock          (clock          ), // Top level system clock input.
     .resetn       (resetn       ), // Asynchronous active low reset.
     .uart_rxd     (uart_rxd     ), // UART Recieve pin.
     .uart_rx_en   (uart_rx_en   ), // Recieve enable
@@ -78,7 +78,7 @@ module top (
     .PAYLOAD_BITS(PAYLOAD_BITS),
     .CLK_HZ  (CLK_HZ  )
   ) i_uart_tx(
-    .clk          (clk          ),
+    .clock          (clock          ),
     .resetn       (resetn       ),
     .uart_txd     (uart_txd     ),
     .uart_tx_en   (uart_tx_en   ),
@@ -90,7 +90,7 @@ module top (
   logic [7:0] wr_data, rd_data;
   logic [BRAM_ADDR_W-1:0] wr_addr, wr_addr_next, rd_addr, rd_addr_next;
   mem_arty_205kb mem (
-    .clk(clk),
+    .clock(clock),
     .wr_en(wr_en),
     .wr_data(wr_data),
     .wr_addr(wr_addr),
@@ -105,7 +105,7 @@ module top (
 
   wire [31:0] solutions[12][2];
   part_01 inst_part_01 (
-    .clk(clk),
+    .clock(clock),
     .reset(reset),
     .cs(cs01),
     .data(data),
@@ -115,6 +115,18 @@ module top (
     .solution_valid(solution_valid)
   );
 
+  part_02 inst_part_02 (
+    .clock(clock),
+    .reset(reset),
+    .cs(cs02),
+    .data(data),
+    .data_valid(data_valid),
+    .solution_a(solutions[1][0]),
+    .solution_b(solutions[1][1]),
+    .solution_valid(solution_valid)
+  );
+
+
   wire [31:0] solution_a = solutions[sw - 1][0];
   wire [31:0] solution_b = solutions[sw - 1][1];
   logic convert;
@@ -122,7 +134,7 @@ module top (
   logic [7:0] message [32];
   logic done_converting;
   solution2char inst_solution2char (
-    .clk(clk),
+    .clock(clock),
     .resetn(resetn),
     .solution_a(solution_a),
     .solution_b(solution_b),
@@ -140,7 +152,7 @@ module top (
   logic [$clog2(ADVENT_N)-1:0] day_mem_ptr, day_mem_ptr_next;
   genvar i;
   for (i = 1; i < ADVENT_N; i++) begin
-    always_ff @(posedge clk or negedge resetn) begin
+    always_ff @(posedge clock or negedge resetn) begin
       if (!resetn) day_mem_addr[i] <= '0;
       else day_mem_addr[i] <= day_mem_addr_next[i];
     end
@@ -153,7 +165,7 @@ module top (
     end
   endtask
 
-  always_ff @(posedge clk or negedge resetn) begin
+  always_ff @(posedge clock or negedge resetn) begin
     if (!resetn) day_mem_ptr <= '1;
     else         day_mem_ptr <= day_mem_ptr_next;
   end
@@ -174,10 +186,10 @@ module top (
   e_state state_r, state_next;
 
   logic [4:0] msg_char, msg_char_next;
-  always_ff @(posedge clk) wr_addr  <= wr_addr_next;
-  always_ff @(posedge clk) rd_addr  <= rd_addr_next;
-  always_ff @(posedge clk) state_r  <= state_next;
-  always_ff @(posedge clk) msg_char <= msg_char_next;
+  always_ff @(posedge clock) wr_addr  <= wr_addr_next;
+  always_ff @(posedge clock) rd_addr  <= rd_addr_next;
+  always_ff @(posedge clock) state_r  <= state_next;
+  always_ff @(posedge clock) msg_char <= msg_char_next;
 
 
 

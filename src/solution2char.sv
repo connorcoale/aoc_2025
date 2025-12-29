@@ -23,7 +23,7 @@
 */
 
 module solution2char (
-  input            clk,
+  input            clock,
   input            resetn,
   input [31:0]     solution_a,
   input [31:0]     solution_b,
@@ -37,7 +37,7 @@ module solution2char (
   logic [3:0] bcd_a [10];
   logic [3:0] bcd_b [10];
   bin2bcd bin2bcd_a (
-    .clk(clk),
+    .clock(clock),
     .resetn(resetn),
     .convert(converting),
     .data(solution_a),
@@ -46,7 +46,7 @@ module solution2char (
   );
 
   bin2bcd bin2bcd_b (
-    .clk(clk),
+    .clock(clock),
     .resetn(resetn),
     .convert(converting),
     .data(solution_b),
@@ -63,7 +63,7 @@ module solution2char (
   } e_state;
   e_state state_r, state_next;
 
-  always_ff @(posedge clk or negedge resetn) begin
+  always_ff @(posedge clock or negedge resetn) begin
     if (!resetn) begin
       state_r    <= IDLE;
       converting <= 1'b0;

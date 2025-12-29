@@ -57,6 +57,8 @@ compile_sim_s2c:                   $(SIM_SOURCES_S2C) $(SIM_TOP_FILE)
 compile_sim_all:
 	echo "not yet implemented"
 
+compile_sim_all: compile_sim_01 compile_sim_02 compile_sim_s2c compile_sim_top 
+	echo "All simulations compiled."
 
 $(SIM_RESDIR)/V$(SIM_TOP): compile_sim_top
 	echo "compiling sim_top"
@@ -81,6 +83,18 @@ run_sim_02: $(SIM_RESDIR)/Vtb_02 compile_sim_02
 
 run_sim_s2c: $(SIM_RESDIR)/V$(SIM_S2C)
 	$(SIM_RESDIR)/V$(SIM_S2C)
+
+
+run_sim_all: compile_sim_all
+	echo "Running sim_01"
+	$(SIM_RESDIR)/V$(SIM_PART_01)
+	echo "Running sim_02"
+	$(SIM_RESDIR)/Vtb_02
+	echo "Running sim_s2c"
+	$(SIM_RESDIR)/V$(SIM_S2C)
+	echo "Running sim_top"
+	$(SIM_RESDIR)/V$(SIM_TOP)
+	echo "All simulations finished."
 
 generate_bitstream: fpga/arty-a7-35t/compile.tcl
 	vivado -mode batch -source fpga/arty-a7-35t/compile.tcl

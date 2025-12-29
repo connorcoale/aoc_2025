@@ -78,9 +78,6 @@ class part_02 (num: Int, bcdWidth: Int = 12) extends Module {
   load_start := isDash
   val firstNL = isNL && !RegNext(isNL)
   load_end   := isComma || firstNL // only store on newline at end of input, not on last line of input as well.
-  dontTouch(load_end)
-  dontTouch(load_start)
-  dontTouch(firstNL)
   val starts = Reg(Vec(num, new BCD(bcdWidth)))
   val ends   = Reg(Vec(num, new BCD(bcdWidth)))
   when (load_start) {
@@ -112,8 +109,6 @@ class part_02 (num: Int, bcdWidth: Int = 12) extends Module {
       }
     }
   }
-  dontTouch(starts)
-  dontTouch(ends)
   val checkCnt = RegInit(0.U(num.W))
   when (state === State.loading && stateNext === State.checking) { checkCnt := (1.U << (num-1)) }
   .elsewhen (idChecker.io.done)                                  { checkCnt := (checkCnt >> 1) }
@@ -181,7 +176,6 @@ class BCD (val bcdWidth: Int = 10, val isASCII: Boolean = false) extends Bundle 
       val rawSum = this.num(i) +& that.num(i) + carry(i)
       // BCD correction
       val needsAdjust = rawSum > 9.U
-      dontTouch(rawSum)
       sum.num(i) := Mux(needsAdjust, rawSum - 10.U, rawSum)
       carry(i + 1) := needsAdjust
     }
@@ -276,18 +270,14 @@ class IDChecker (bcdWidth: Int) extends Module {
   val runningTotalB = Reg(new BCD(bcdWidth))
   io.done           := WireInit(false.B)
   state             := stateNext
-  dontTouch(state)
 
   val patternWidths = 1 to (bcdWidth / 2) by 1
   val (partAInvalid, partBInvalid) = patternWidths.map(i => isIDInvalid(id, i))
     .unzip match {
       case (a, b) => (a.reduce(_ || _), b.reduce(_ || _))
     }
-  dontTouch(partAInvalid)
-  dontTouch(partBInvalid)
 
   val atEnd = id === io.end
-  dontTouch(atEnd)
   switch (state) {
     is (State.idle) {
       when (io.check) {
@@ -304,7 +294,6 @@ class IDChecker (bcdWidth: Int) extends Module {
   }
 
   val loadId = io.check && !RegNext(io.check)
-  dontTouch(loadId)
 
   when (loadId) {
     idNext := io.start
@@ -317,9 +306,6 @@ class IDChecker (bcdWidth: Int) extends Module {
   } .otherwise {
     idNext := 0.U.asTypeOf(idNext)
   }
-  dontTouch(id)
-  dontTouch(runningTotalA)
-  dontTouch(runningTotalB)
 
   io.totalOutA := runningTotalA
   io.totalOutB := runningTotalB

@@ -1,6 +1,7 @@
 // src files
 top.sv
 part_01.sv
+part_02.sv
 solution2char.sv
 
 // lib files
