@@ -67,15 +67,17 @@ module tb_02 ();
 
     fd = $fopen (file_name, "r");
     while (!$feof(fd)) begin
-      $fgets(line, fd);
-      for (int i = 0; i < line.len(); i ++) begin
+      void'($fgets(line, fd));
+      foreach (line[i]) begin
         @(cb);
+        cb.cs <= 1'b1;
         cb.data_valid <= '1;
-        cb.data <= line.getc(i);
+        cb.data <= line[i];
       end
     end
     @(cb);
     cb.data_valid <= '0;
+    cb.cs <= 1'b0;
     $fclose(fd);
   endtask
 
@@ -85,9 +87,14 @@ module tb_02 ();
     cb.data_valid <= 1'b0;
     cb.cs <= 1'b0;
     reset_dut();
-    cb.cs <= 1'b1;
-    send_file("sim/stimulus/02/example_01.txt");
-    repeat (500) @(cb);
+    // send_file("sim/stimulus/02/example_01.txt");
+    // repeat (5000) @(cb);
+    // send_file("sim/stimulus/02/example_02.txt");
+    // repeat (10000) @(cb);
+    // send_file("sim/stimulus/02/example_03.txt");
+    // repeat (10000) @(cb);
+    send_file("sim/stimulus/02/input_02.txt");
+    repeat (2500000) @(cb);
     $finish;
   end
 endmodule

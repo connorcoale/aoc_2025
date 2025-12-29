@@ -10,7 +10,7 @@ import chisel3._
 import _root_.circt.stage.ChiselStage
 import chisel3.util._
 
-class part_02 (num: Int) extends Module {
+class part_02 (num: Int, bcdWidth: Int = 12) extends Module {
   // Need to declare as FlatIO to avoid prefix of io_* for all IO signals.
   val io = FlatIO(new Bundle{
     val cs             = Input(Bool())
@@ -21,54 +21,130 @@ class part_02 (num: Int) extends Module {
     val solution_valid = Output(Bool())
   })
 
+  object State extends ChiselEnum {
+    val idle, loading, checking, done = Value
+  }
+  val state     = RegInit(State.idle)
+  val stateNext = WireInit(state)
+  state         := stateNext
+
+  val doneChecking = WireInit(false.B)
+  val enLoad       = WireInit(false.B)
+  io.solution_valid := false.B
+  switch (state) {
+    is (State.idle) {
+      when (io.data_valid && io.cs) {
+        stateNext := State.loading
+        enLoad    := true.B
+      }
+    }
+    is (State.loading) {
+      enLoad      := (io.data_valid && io.cs)
+      when (!(io.data_valid && io.cs)) {
+        stateNext := State.checking
+      }
+    }
+    is (State.checking) {
+      when (doneChecking) {
+        stateNext := State.done
+      }
+    }
+    is (State.done) {
+      io.solution_valid := true.B
+    }
+  }
+
+  /////////////////////////////////////////////////////////
+  // LOADING LOGIC
+  /////////////////////////////////////////////////////////
   // Determine separators for numbers
   val isDash  = io.data === 45.U // "-"
   val isComma = io.data === 44.U // ","
+  val isNL    = io.data === 10.U // "\n"
 
   // Shift in the digits, in ascii-coded-decimal
-  val shiftIn = RegInit(0.U.asTypeOf(new BCD(10, true)))
+  val shiftIn = RegInit(0.U.asTypeOf(new BCD(bcdWidth, true)))
   val shiftInShifted = shiftIn.shiftLeft(io.data)
-  when (io.data_valid && io.cs) {
+  when (enLoad) {
     when (isDash || isComma) { shiftIn := 0.U.asTypeOf(shiftIn) }
     .otherwise               { shiftIn := shiftInShifted }
-  } .elsewhen(io.cs)         { shiftIn := 0.U.asTypeOf(shiftIn) }
+  }
+  .otherwise                 { shiftIn := 0.U.asTypeOf(shiftIn) }
   val shiftInBCD: BCD  = shiftIn.ascii2dec
 
-  // Count increases on every comma
+  // set up load signals to load all the bcds
+  val load_start = Wire(Bool())
+  val load_end   = Wire(Bool())
+  load_start := isDash
+  val firstNL = isNL && !RegNext(isNL)
+  load_end   := isComma || firstNL // only store on newline at end of input, not on last line of input as well.
+  dontTouch(load_end)
+  dontTouch(load_start)
+  dontTouch(firstNL)
+  val starts = Reg(Vec(num, new BCD(bcdWidth)))
+  val ends   = Reg(Vec(num, new BCD(bcdWidth)))
+  when (load_start) {
+    starts(0) := shiftInBCD
+    for (i <- 1 until num) {
+      starts(i) := starts(i-1)
+    }
+  }
+  when (load_end) {
+    ends(0) := shiftInBCD
+    for (i <- 1 until num) {
+      ends(i) := ends(i-1)
+    }
+  }
+
+  /////////////////////////////////////////////////////////
+  // CHECKING LOGIC
+  /////////////////////////////////////////////////////////
+  val idChecker = Module(new IDChecker(bcdWidth))
+  val check = state === State.checking && !idChecker.io.busy
+  when (idChecker.io.done) {
+    for (i <- 0 until num) {
+      if (i == num - 1) {
+        starts(i) := 0.U.asTypeOf(starts(i))
+        ends(i)   := 0.U.asTypeOf(starts(i))
+      } else {
+        starts(i) := starts(i+1)
+        ends(i)   := ends(i+1)
+      }
+    }
+  }
+  dontTouch(starts)
+  dontTouch(ends)
+  val checkCnt = RegInit(0.U(num.W))
+  when (state === State.loading && stateNext === State.checking) { checkCnt := (1.U << (num-1)) }
+  .elsewhen (idChecker.io.done)                                  { checkCnt := (checkCnt >> 1) }
+  .elsewhen (state === State.checking)                           { checkCnt := (checkCnt) }
+  .otherwise                                                     { checkCnt := 0.U }
+  doneChecking := (state === State.checking) && !checkCnt.orR
+
+
+  // Count increases on each "done" of checker
   val cntNext  = Wire(UInt(5.W))
   val cnt      = RegNext(cntNext)
-  cntNext      := cnt + isComma.asUInt
+  cntNext      := cnt + idChecker.io.done.asUInt
 
-  // set up load signals to load all the bcds
-  val load_start = Wire(Vec(num, Bool()))
-  val load_end   = Wire(Vec(num, Bool()))
-  for (i <- 0 to (num-1) by 1) {
-    load_start(i) := cnt === i.U && isDash
-    load_end(i)   := cnt === i.U && isComma
-  }
-  dontTouch(load_start)
-  dontTouch(load_end)
-  val starts = VecInit(Seq.tabulate(num) {i => RegEnable(shiftInBCD, load_start(i))})
-  val ends   = VecInit(Seq.tabulate(num) {i => RegEnable(shiftInBCD, load_end(i))})
+  val totalA   = Wire(new BCD(bcdWidth))
+  val totalB   = Wire(new BCD(bcdWidth))
+  val totalInA = totalA
+  val totalInB = totalB
+  idChecker.io.check    := check
+  idChecker.io.start    := starts(0)
+  idChecker.io.end      := ends(0)
+  idChecker.io.totalInA := totalInA
+  idChecker.io.totalInB := totalInB
+  totalA                := idChecker.io.totalOutA
+  totalB                := idChecker.io.totalOutB
 
-  val check = !io.data_valid && RegNext(io.data_valid)
-  val done  = Wire(Bool())
-  val total = Wire(new BCD(10))
-  val totalIn = RegNext(total)
-  val idChecker = Module(new IDChecker(10))
-  idChecker.io.check   := check
-  idChecker.io.start   := starts(0)
-  idChecker.io.end     := ends(0)
-  idChecker.io.totalIn := totalIn
-  done                 := idChecker.io.done
-  total                := idChecker.io.totalOut
   io.solution_a := shiftIn.num.asUInt
   io.solution_b := shiftInShifted.num.asUInt
   io.solution_valid := 0.B
-
 }
 
-class BCD (val bcdWidth: Int = 10, isASCII: Boolean = false) extends Bundle {
+class BCD (val bcdWidth: Int = 10, val isASCII: Boolean = false) extends Bundle {
   val digWidth = if (isASCII) 8.W else 4.W
   val num = Vec(bcdWidth, UInt(digWidth))
 
@@ -93,6 +169,25 @@ class BCD (val bcdWidth: Int = 10, isASCII: Boolean = false) extends Bundle {
     bcd
   }
 
+  def +(that: BCD): BCD = {
+    require(!this.isASCII && !that.isASCII)
+    require(this.bcdWidth == that.bcdWidth)
+    val sum = Wire(new BCD(bcdWidth))
+    // carry between digits
+    val carry = Wire(Vec(bcdWidth + 1, Bool()))
+    carry(0) := false.B
+    for (i <- 0 until bcdWidth) {
+      // max rawSum = 9 + 9 + 1 = 19 => need 5 bits. use +&
+      val rawSum = this.num(i) +& that.num(i) + carry(i)
+      // BCD correction
+      val needsAdjust = rawSum > 9.U
+      dontTouch(rawSum)
+      sum.num(i) := Mux(needsAdjust, rawSum - 10.U, rawSum)
+      carry(i + 1) := needsAdjust
+    }
+    sum
+  }
+
   def ++ : BCD = {
     require(!isASCII)
     val bcdAdded = Wire(new BCD(bcdWidth))
@@ -115,63 +210,84 @@ class BCD (val bcdWidth: Int = 10, isASCII: Boolean = false) extends Bundle {
 
 class IDChecker (bcdWidth: Int) extends Module {
   val io = IO (new Bundle{
-    val check    = Input(Bool())
-    val start    = Input(new BCD(bcdWidth))
-    val end      = Input(new BCD(bcdWidth))
-    val totalIn  = Input(new BCD(bcdWidth))
-    val done     = Output(Bool())
-    val totalOut = Output(new BCD(bcdWidth))
+    val check     = Input(Bool())
+    val start     = Input(new BCD(bcdWidth))
+    val end       = Input(new BCD(bcdWidth))
+    val totalInA  = Input(new BCD(bcdWidth))
+    val totalInB  = Input(new BCD(bcdWidth))
+    val done      = Output(Bool())
+    val busy      = Output(Bool())
+    val totalOutA = Output(new BCD(bcdWidth))
+    val totalOutB = Output(new BCD(bcdWidth))
   })
 
   // Check if a BCD of any length has a repeating pattern of any width. Optionally
   // only return invalid when the pattern exists only twice. Accounts for leading zeros.
-  def isIDValid(id: BCD, patternWidth: Int, onlyDouble: Boolean): Bool = {
-    // Need to handle cases where patternWidth doesn't divide evenly.
+  def isIDInvalid(id: BCD, patternWidth: Int): (Bool, Bool) = {
+
+    // Determine number of patterns to check, but need to handle cases where 
+    // patternWidth doesn't divide evenly into bcdWidth
     val nPatterns = (id.bcdWidth + patternWidth - 1) / patternWidth
     val patterns  = Wire(Vec(nPatterns, Vec(patternWidth, UInt(id.digWidth))))
-    // Build patterns (handle padding with zeros for top one)
+
+    // Build pattern vectors (handle padding with zeros for top one)
     for (i <- 0 until nPatterns) {
       for (j <- 0 until patternWidth) {
         val idx = i * patternWidth + j
-        if (idx < id.bcdWidth) {
-          patterns(i)(j) := id.num(idx)
-        } else {
-          patterns(i)(j) := 0.U
-        }
+        if (idx < id.bcdWidth) { patterns(i)(j) := id.num(idx) } 
+        else { patterns(i)(j) := 0.U }
       }
     }
-    // Vector of bits to indicate which patterns have values
+    // Reference pattern (should match this if invalid)
+    val ref = patterns(0)
+    val refHasNoLeading0 = ref(patternWidth-1) =/= 0.U
+
+    // Vector of bits to indicate which patterns have non-zero values
     val patternNonZero = patterns.map { p => p.map(_.orR).reduce(_ || _) }
     val hasAny = patternNonZero.reduce(_ || _)
-    // Find highest non-zero pattern
+
+    // Find highest non-zero pattern which is followed exclusively by all-zero patterns.
     val highestIdx = Mux(hasAny, (nPatterns - 1).U - PriorityEncoder(patternNonZero.reverse), 0.U)
-    // Reference pattern (should match this)
-    val ref = patterns(0)
+
     // Check matching rules
     val matches = VecInit((0 until nPatterns).map { i =>
       Mux(
-        i.U > highestIdx,   // location of first all-zero candidate followed exclusively by all-zero candidates
-        true.B,             // ignore ONLY leading-zero patterns (say it's "matching" by default for when above last non-zero candidate)
-        patterns(i) === ref // check if candidate is equal when below last non-zero candidate
+        i.U > highestIdx,   // are we above the last non-zero pattern?
+        true.B,             // if yes, consider it a match
+        patterns(i) === ref // if no, check if it matches ref
       )
     })
-    // If we only want to count doubled IDs, add this extra check
-    val evalOnlyDouble = !onlyDouble.B || (highestIdx === 1.U)
-    !(hasAny && matches.reduce(_ && _) && highestIdx > 0.U && evalOnlyDouble)
+
+    val allMatch           = (matches.reduce(_ && _) && refHasNoLeading0 && highestIdx > 0.U)
+    val allMatchOnlyDouble = allMatch && (highestIdx === 1.U)
+
+    (allMatchOnlyDouble, allMatch)
   }
 
   object State extends ChiselEnum {
     val idle, checking = Value
   }
 
-  val state     = RegInit(State.idle)
-  val stateNext = WireInit(State.idle)
-  val idNext    = Wire(new BCD(bcdWidth))
-  val id        = RegNext(idNext)
-  io.done       := WireInit(false.B)
-  state         := stateNext
+  val state         = RegInit(State.idle)
+  val stateNext     = WireInit(State.idle)
+  val idNext        = Wire(new BCD(bcdWidth))
+  val id            = RegNext(idNext)
+  val runningTotalA = Reg(new BCD(bcdWidth))
+  val runningTotalB = Reg(new BCD(bcdWidth))
+  io.done           := WireInit(false.B)
+  state             := stateNext
   dontTouch(state)
 
+  val patternWidths = 1 to (bcdWidth / 2) by 1
+  val (partAInvalid, partBInvalid) = patternWidths.map(i => isIDInvalid(id, i))
+    .unzip match {
+      case (a, b) => (a.reduce(_ || _), b.reduce(_ || _))
+    }
+  dontTouch(partAInvalid)
+  dontTouch(partBInvalid)
+
+  val atEnd = id === io.end
+  dontTouch(atEnd)
   switch (state) {
     is (State.idle) {
       when (io.check) {
@@ -179,7 +295,7 @@ class IDChecker (bcdWidth: Int) extends Module {
       }
     }
     is (State.checking) {
-      when (id === io.end) {
+      when (atEnd) {
         io.done   := true.B
       } .otherwise {
         stateNext := State.checking
@@ -187,34 +303,33 @@ class IDChecker (bcdWidth: Int) extends Module {
     }
   }
 
-
   val loadId = io.check && !RegNext(io.check)
   dontTouch(loadId)
 
   when (loadId) {
     idNext := io.start
+    runningTotalA := io.totalInA
+    runningTotalB := io.totalInB
   } .elsewhen (state === State.checking) {
     idNext := id.++
+    when (partAInvalid) { runningTotalA := runningTotalA + id }
+    when (partBInvalid) { runningTotalB := runningTotalB + id }
   } .otherwise {
     idNext := 0.U.asTypeOf(idNext)
   }
   dontTouch(id)
-  val invalid2 = isIDValid(id, 2, true)
-  dontTouch(invalid2)
-  val invalid3 = isIDValid(id, 3, true)
-  dontTouch(invalid3)
-  val invalid4 = isIDValid(id, 4, true)
-  dontTouch(invalid4)
-  val invalid5 = isIDValid(id, 5, true)
-  dontTouch(invalid5)
+  dontTouch(runningTotalA)
+  dontTouch(runningTotalB)
 
-  io.totalOut := 0.U.asTypeOf(io.totalOut)
+  io.totalOutA := runningTotalA
+  io.totalOutB := runningTotalB
+  io.busy     := state === State.checking
 }
 
 object Main extends App {
   println(
     ChiselStage.emitSystemVerilog(
-      gen = new part_02(10),
+      gen = new part_02(40),
       firtoolOpts = Array("-disable-all-randomization", "-strip-debug-info", "-default-layer-specialization=enable")
     )
   )
