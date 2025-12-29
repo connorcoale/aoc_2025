@@ -30,3 +30,4 @@ sim/stimulus/[01][0-9]/input_*.txt
 # Chisel
 *.bsp
 *scala-build
+src/part_02.sv

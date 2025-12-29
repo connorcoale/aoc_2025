@@ -34,16 +34,22 @@ SIM_DUT         = $(SIM_SOURCES_S2C)
 
 clean: 
 	rm -f sim/verilated/*
+	rm -f src/part_02.sv
 
 compile:
 	echo "no compile set up yet"
 
+src/part_02.sv: src/part_02.scala
+	scala-cli src/part_02.scala > src/part_02.sv
 
 compile_sim_top: $(SOURCES) $(DEPS) $(SIM_SOURCES) $(TB_DEPS)
 	$(SIM_TOOL) $(SIM_FLAGS) $(DEPS) $(SIM_SOURCES) $(TB_DEPS) -Isrc $(SIM_DUT_FILE)
 
 compile_sim_01: $(SOURCES) $(DEPS) $(SIM_SOURCES_01) $(TB_DEPS)
 	$(SIM_TOOL) $(SIM_FLAGS) $(DEPS) $(SIM_SOURCES_01) $(TB_DEPS) -Isrc $(SIM_DUT_FILE_01)
+
+compile_sim_02: src/part_02.sv tb/tb_02.sv
+	$(SIM_TOOL) $(SIM_FLAGS) $(DEPS) tb/tb_02.sv -Isrc src/part_02.sv
 
 compile_sim_s2c:                   $(SIM_SOURCES_S2C) $(SIM_TOP_FILE)
 	$(SIM_TOOL) $(SIM_FLAGS) $(SIM_TOP_FILE) -Isrc $(SIM_SOURCES_S2C)
@@ -58,6 +64,9 @@ $(SIM_RESDIR)/V$(SIM_TOP): compile_sim_top
 $(SIM_RESDIR)/V$(SIM_PART_01): compile_sim_01
 	echo "compiling sim_01"
 
+$(SIM_RESDIR)/Vtb_02: compile_sim_02
+	echo "compiling sim_02"
+
 $(SIM_RESDIR)/V$(SIM_S2C): compile_sim_s2c
 	echo "compiling sim_s2c"
 
@@ -66,6 +75,9 @@ run_sim_top: $(SIM_RESDIR)/V$(SIM_TOP)
 
 run_sim_01: $(SIM_RESDIR)/V$(SIM_PART_01)
 	$(SIM_RESDIR)/V$(SIM_PART_01)
+
+run_sim_02: $(SIM_RESDIR)/Vtb_02 compile_sim_02
+	$(SIM_RESDIR)/Vtb_02
 
 run_sim_s2c: $(SIM_RESDIR)/V$(SIM_S2C)
 	$(SIM_RESDIR)/V$(SIM_S2C)
