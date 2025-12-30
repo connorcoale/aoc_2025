@@ -1,106 +1,125 @@
-# DUT TOP AND TB TOP (the verilog module name)
-TOP    = top
-TB_TOP = tb_top
+# ========================
+# Project Configuration
+# ========================
 
-# SOURCE FILE DEFINITIONS (plus dependencies)
-SOURCES    = src/top.sv src/part_01.sv src/solution2char.sv src/part_02.sv
-DEPS       =
-LIBS       = src/lib/uart/uart_rx.sv src/lib/uart/uart_tx.sv src/lib/mem/mem_arty_4kb_wrapper.sv src/lib/mem/mem_arty_205kb_wrapper.sv lib/bin2bcd/bin2bcd.sv
+# Source files
+SRC      = src/top.sv src/part_01.sv src/solution2char.sv
+LIBS     = src/lib/uart/uart_rx.sv src/lib/uart/uart_tx.sv \
+           src/lib/mem/mem_arty_4kb_wrapper.sv src/lib/mem/mem_arty_205kb_wrapper.sv \
+           lib/bin2bcd/bin2bcd.sv
 
-# VERILATOR DEFINITIONS
+# Scala-generated SV files
+SCALA_SRC = src/part_02.scala
+GEN_SRC   = src/part_02.sv
+
+# Testbenches
+TBS      = tb_top tb_01 tb_02 tb_solution2char
+
+# Simulation output directory
 SIM_RESDIR = sim/verilated
-SIM_TOOL   = verilator
-SIM_FLAGS  = --binary -j 0 -Wno-lint --trace -Mdir $(SIM_RESDIR)
 
-# Simulation
-TB_DEPS    =
+# Verilator configuration
+SIM_TOOL  = verilator
+SIM_FLAGS = --binary -j 0 -Wno-lint --trace -Mdir $(SIM_RESDIR)
 
-SIM_SOURCES     = tb/tb_top.sv
-SIM_TOP         = tb_top
-SIM_TOP_FILE    = tb/tb_top.sv
-SIM_DUT_FILE    = -f src/top.f
+# FPGA bitstream
+BITSTREAM = fpga/arty-a7-35t/top.bit
+TCL_SCRIPT = fpga/arty-a7-35t/compile.tcl
 
-SIM_SOURCES_01  = tb/tb_01.sv
-SIM_PART_01     = tb_01
-SIM_TOP_FILE_01 = tb/tb_01.sv
-SIM_DUT_FILE_01 = -f src/part_01.f
+# ========================
+# PHONY targets
+# ========================
+.PHONY: all clean compile_sim run_sim run_sim_all generate_bitstream flash_bitstream
 
-SIM_SOURCES_S2C = src/lib/bin2bcd/bin2bcd.sv src/solution2char.sv
-SIM_S2C         = tb_solution2char
-SIM_TOP_FILE    = tb/tb_solution2char.sv
-SIM_DUT         = $(SIM_SOURCES_S2C)
+# ========================
+# Default target
+# ========================
+all: compile_sim_all
 
-.PHONY: clean compile_sim run_sim generate_bitstream flash_bitstream
+# ========================
+# Clean
+# ========================
+clean:
+	rm -rf $(SIM_RESDIR)/*
+	rm -f $(GEN_SRC)
+	rm -f $(BITSTREAM)
 
-clean: 
-	rm -f sim/verilated/*
-	rm -f src/part_02.sv
+# ========================
+# Scala -> SV generation
+# ========================
+$(GEN_SRC): $(SCALA_SRC)
+	scala-cli $< > $@
 
-compile:
-	echo "no compile set up yet"
+# ========================
+# Create simulation directory
+# ========================
+$(SIM_RESDIR):
+	mkdir -p $@
 
-src/part_02.sv: src/part_02.scala
-	scala-cli src/part_02.scala > src/part_02.sv
+# ========================
+# Verilator compilation (pattern rule)
+# ========================
+# Maps tb/tb_<name>.sv -> sim/verilated/V<name>
 
-compile_sim_top: $(SOURCES) $(DEPS) $(SIM_SOURCES) $(TB_DEPS)
-	$(SIM_TOOL) $(SIM_FLAGS) $(DEPS) $(SIM_SOURCES) $(TB_DEPS) -Isrc $(SIM_DUT_FILE)
+VERILATION_TARGETS = $(SIM_RESDIR)/Vtb_top $(SIM_RESDIR)/Vtb_01 $(SIM_RESDIR)/Vtb_02 $(SIM_RESDIR)/Vtb_solution2char
 
-compile_sim_01: $(SOURCES) $(DEPS) $(SIM_SOURCES_01) $(TB_DEPS)
-	$(SIM_TOOL) $(SIM_FLAGS) $(DEPS) $(SIM_SOURCES_01) $(TB_DEPS) -Isrc $(SIM_DUT_FILE_01)
+$(SIM_RESDIR)/Vtb_top: tb/tb_top.sv $(GEN_SRC)
+	$(SIM_TOOL) $(SIM_FLAGS) tb/tb_top.sv -Isrc -f src/filelist/top.f
 
-compile_sim_02: src/part_02.sv tb/tb_02.sv
-	$(SIM_TOOL) $(SIM_FLAGS) $(DEPS) tb/tb_02.sv -Isrc src/part_02.sv
+# Rule for tb_01
+$(SIM_RESDIR)/Vtb_01: tb/tb_01.sv
+	$(SIM_TOOL) $(SIM_FLAGS) tb/tb_01.sv -Isrc -f src/filelist/part_01.f
 
-compile_sim_s2c:                   $(SIM_SOURCES_S2C) $(SIM_TOP_FILE)
-	$(SIM_TOOL) $(SIM_FLAGS) $(SIM_TOP_FILE) -Isrc $(SIM_SOURCES_S2C)
+# Rule for tb_02
+$(SIM_RESDIR)/Vtb_02: tb/tb_02.sv $(GEN_SRC)
+	$(SIM_TOOL) $(SIM_FLAGS) tb/tb_02.sv -Isrc -f src/filelist/part_02.f
 
-compile_sim_all:
-	echo "not yet implemented"
+# Rule for tb_solution2char
+$(SIM_RESDIR)/Vtb_solution2char: tb/tb_solution2char.sv
+	$(SIM_TOOL) $(SIM_FLAGS) tb/tb_solution2char.sv -Isrc -f src/filelist/solution2char.f
 
-compile_sim_all: compile_sim_01 compile_sim_02 compile_sim_s2c compile_sim_top 
-	echo "All simulations compiled."
+verilate_all: $(GEN_SRC) $(VERILATION_TARGETS)
 
-$(SIM_RESDIR)/V$(SIM_TOP): compile_sim_top
-	echo "compiling sim_top"
+#$(SIM_RESDIR)/V%: tb/%.sv $(SRC) $(LIBS) $(SIM_RESDIR) $(GEN_SRC)
+#$(SIM_TOOL) $(SIM_FLAGS) tb/$*.sv -Isrc -f top.f
 
-$(SIM_RESDIR)/V$(SIM_PART_01): compile_sim_01
-	echo "compiling sim_01"
+# ========================
+# Compile all simulations
+# ========================
+compile_sim_all: verilate_all
+	@echo "All simulations compiled."
 
-$(SIM_RESDIR)/Vtb_02: compile_sim_02
-	echo "compiling sim_02"
+# ========================
+# Run individual simulation
+# ========================
+run_sim_%: $(SIM_RESDIR)/Vtb_%
+	$<
 
-$(SIM_RESDIR)/V$(SIM_S2C): compile_sim_s2c
-	echo "compiling sim_s2c"
-
-run_sim_top: $(SIM_RESDIR)/V$(SIM_TOP)
-	$(SIM_RESDIR)/V$(SIM_TOP)
-
-run_sim_01: $(SIM_RESDIR)/V$(SIM_PART_01)
-	$(SIM_RESDIR)/V$(SIM_PART_01)
-
-run_sim_02: $(SIM_RESDIR)/Vtb_02 compile_sim_02
-	$(SIM_RESDIR)/Vtb_02
-
-run_sim_s2c: $(SIM_RESDIR)/V$(SIM_S2C)
-	$(SIM_RESDIR)/V$(SIM_S2C)
-
-
+# ========================
+# Run all simulations
+# ========================
 run_sim_all: compile_sim_all
-	echo "Running sim_01"
-	$(SIM_RESDIR)/V$(SIM_PART_01)
-	echo "Running sim_02"
-	$(SIM_RESDIR)/Vtb_02
-	echo "Running sim_s2c"
-	$(SIM_RESDIR)/V$(SIM_S2C)
-	echo "Running sim_top"
-	$(SIM_RESDIR)/V$(SIM_TOP)
-	echo "All simulations finished."
+	@echo "Running all simulations..."
+	$(foreach tb,$(TBS),$(SIM_RESDIR)/V$(tb);)
+	@echo "All simulations finished."
 
-generate_bitstream: fpga/arty-a7-35t/compile.tcl
-	vivado -mode batch -source fpga/arty-a7-35t/compile.tcl
-
-flash_bitstream:
-	echo "not yet implemented"
-
-syn: ${SOURCES}
+# ========================
+# Simple yosys synthesis
+# ========================
+.PHONY: syn
+syn: $(GEN_SRC)
 	yosys syn/syn.ys > syn/syn.log
+
+# ========================
+# Vivado bitstream generation
+# ========================
+$(BITSTREAM): $(TCL_SCRIPT)
+	vivado -mode batch -source $<
+
+generate_bitstream: $(BITSTREAM)
+
+# ========================
+# Flash FPGA
+# ========================
+flash_bitstream: $(BITSTREAM)
+	echo "todo"
