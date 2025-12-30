@@ -131,7 +131,11 @@ module top (
   wire [31:0] solution_b = solutions[sw - 1][1];
   logic convert;
   logic done_tx;
+  logic [8*32-1:0] message_flat;
   logic [7:0] message [32];
+  always_comb begin
+    for (int i = 0; i < 32; i++) message[i] = message_flat[(i+1)*8-1-:8];
+  end
   logic done_converting;
   solution2char inst_solution2char (
     .clock(clock),
@@ -141,7 +145,7 @@ module top (
     .day(sw),
     .convert(convert),
     .done_tx(done_tx),
-    .message(message),
+    .message_flat(message_flat),
     .done(done_converting)
   );
 
@@ -200,6 +204,7 @@ module top (
     wr_addr_next     = wr_addr;
     wr_data          = uart_rx_data;
     rd_en            = 1'b0;
+    rd_addr_next     = rd_addr;
     day_mem_ptr_next = day_mem_ptr;
     cs01             = 1'b0;
     data_valid       = 1'b0;

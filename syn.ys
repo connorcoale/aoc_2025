@@ -1,0 +1,27 @@
+read_verilog -sv src/top.sv
+# read_verilog -sv src/part_01.sv
+read_verilog -sv src/part_02.sv
+read_verilog -sv src/solution2char.sv
+read_verilog -sv src/lib/uart/uart_rx.sv
+read_verilog -sv src/lib/uart/uart_tx.sv
+read_verilog -sv src/lib/mem/mem_arty_4kb_wrapper.sv
+read_verilog -sv src/lib/mem/mem_arty_205kb.sv
+read_verilog -sv src/lib/bin2bcd/bin2bcd.sv
+
+# Set top module
+hierarchy -top top
+
+# Basic fast synthesis
+proc
+opt
+fsm
+opt
+memory
+opt
+techmap
+opt
+flatten
+opt
+
+# Usage report
+stat

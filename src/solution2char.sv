@@ -23,25 +23,32 @@
 */
 
 module solution2char (
-  input            clock,
-  input            resetn,
-  input [31:0]     solution_a,
-  input [31:0]     solution_b,
-  input [3:0]      day,
-  input            convert,
-  input            done_tx,
-  output reg [7:0] message [32],
-  output reg       done
+  input                 clock,
+  input                 resetn,
+  input [31:0]          solution_a,
+  input [31:0]          solution_b,
+  input [3:0]           day,
+  input                 convert,
+  input                 done_tx,
+  output reg [8*32-1:0] message_flat,
+  output reg            done
 );
 
+  logic [7:0] message [32];
   logic [3:0] bcd_a [10];
+  logic [4*10-1:0] bcd_a_flat;
   logic [3:0] bcd_b [10];
+  logic [4*10-1:0] bcd_b_flat;
+  always_comb begin
+    for (int i = 0; i < 10; i++) bcd_a[i] = bcd_a_flat[(i+1)*4-1-:4];
+    for (int i = 0; i < 10; i++) bcd_b[i] = bcd_b_flat[(i+1)*4-1-:4];
+  end
   bin2bcd bin2bcd_a (
     .clock(clock),
     .resetn(resetn),
     .convert(converting),
     .data(solution_a),
-    .bcd(bcd_a),
+    .bcd_flat(bcd_a_flat),
     .done(done_a)
   );
 
@@ -50,7 +57,7 @@ module solution2char (
     .resetn(resetn),
     .convert(converting),
     .data(solution_b),
-    .bcd(bcd_b),
+    .bcd_flat(bcd_b_flat),
     .done(done_b)
   );
 
@@ -106,7 +113,9 @@ module solution2char (
   assign message[14] = 8'h2c; // "," ascii char
   always_comb begin
     // Need to flip the ordering for printing in a string, hence 9-i
-    for (int i = 0; i < 10; i++) message[i + 04] = bcd_a[9-i] + 8'd48;
-    for (int j = 0; j < 10; j++) message[j + 15] = bcd_b[9-j] + 8'd48; // same as above
+    for (int i = 0; i < 10; i++)   message[i + 04] = bcd_a[9-i] + 8'd48;
+    for (int j = 0; j < 10; j++)   message[j + 15] = bcd_b[9-j] + 8'd48; // same as above
+    for (int k = 25; k < 32; k++ ) message[k]      = 8'd0;
   end
+  always_comb for (int i = 0; i < 32; i++) message_flat[(i+1)*8-1-:8] = message[i];
 endmodule

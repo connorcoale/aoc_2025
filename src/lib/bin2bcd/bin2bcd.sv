@@ -27,7 +27,7 @@ module bin2bcd (
   input resetn,
   input convert,
   input [31:0] data,
-  output reg [3:0] bcd [10], // 10 digits max in 32 bit integer
+  output [4*10-1:0] bcd_flat, // 10 digits max in 32 bit integer
   output reg done
 ); 
 
@@ -75,42 +75,44 @@ module bin2bcd (
     endcase
   end
 
-  logic [3:0] nibbles [10];
-  logic [3:0] nibbles_shifted [10];
-  logic [3:0] nibbles_add3 [10];
-  logic [3:0] nibbles_next [10];
-  task automatic set_nibbles_next_0;
-    for (int i = 0; i < 10; i++) begin
-      nibbles_next[i] = '0;
-    end
-  endtask
+
+  logic [4*10-1:0] nibbles_flat;
+  logic [4*10-1:0] nibbles_shifted_flat;
+  logic [4*10-1:0] nibbles_add3_flat;
+  logic [4*10-1:0] nibbles_next_flat;
+  // logic [3:0] nibbles [10];
+  // logic [3:0] nibbles_shifted [10];
+  // logic [3:0] nibbles_add3 [10];
+  // logic [3:0] nibbles_next [10];
+  // task automatic set_nibbles_next_0;
+    // for (int i = 0; i < 10; i++) begin
+      // nibbles_next[i] = '0;
+    // end
+  // endtask
 
   always_comb begin
-    set_nibbles_next_0();
+    // set_nibbles_next_0();
+    nibbles_next_flat = '0;
+    nibbles_shifted_flat = '0;
+    nibbles_add3_flat = '0;
     if (state_r == BUSY) begin
-      for (int i = 0; i < 10; i++) begin
-        // Make shifted version of all nibbles
-        if (i == 0) begin
-          nibbles_shifted[i] = {nibbles[i][2:0], data_r[31]};
-        end
-        else begin
-          nibbles_shifted[i] = {nibbles[i][2:0], nibbles[i-1][3]};
-        end
-      end
-      for (int j = 0; j < 10; j++) begin
+      nibbles_shifted_flat = {nibbles_flat[38:0], data_r[31]};
+      for (int j = 0; j < 4*10; j = j + 4) begin
         // Add 3 to any nibble which is over 4
-        nibbles_add3[j] = (nibbles_shifted[j] > 'd4 && cnt != 'd31) ? nibbles_shifted[j] + 'd3 : nibbles_shifted[j];
+        nibbles_add3_flat[j-1-:4] = (nibbles_shifted_flat[j-1-:4] > 'd4 && cnt != 'd31) ? nibbles_shifted_flat[j-1-:4] + 'd3 : nibbles_shifted_flat[j-1-:4];
       end
-      nibbles_next = nibbles_add3;
+      nibbles_next_flat = nibbles_add3_flat;
     end else if (state_r == DONE) begin
-      nibbles_next = nibbles;
+      nibbles_next_flat = nibbles_flat;
     end
   end
   always_ff @(posedge clock) begin
-    nibbles <= nibbles_next;
+    nibbles_flat <= nibbles_next_flat;
   end
+  assign bcd_flat = nibbles_flat;
 
-  genvar i;
-  for (i = 0; i < 10; i++) assign bcd[i] = nibbles[i];
+  // logic [3:0] bcd [10];
+  // always_comb for (int i = 0; i < 10; i++) bcd[i] = nibbles[i];
+  // always_comb for (int i = 0; i < 10; i++) bcd_flat[(i+1)*4-1-:4] = bcd[i];
 
 endmodule

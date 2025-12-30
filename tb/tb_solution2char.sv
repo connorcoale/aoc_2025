@@ -25,7 +25,7 @@ module tb_solution2char;
   logic [3:0] day;
   logic convert;
   logic done_tx;
-  logic [7:0] message [32];
+  logic [8*32-1:0] message_flat;
   logic done;
 
   // ------------------------------------------------------------
@@ -50,7 +50,7 @@ module tb_solution2char;
     output convert;
     output done_tx;
     input  done;
-    input  message;
+    input  message_flat;
   endclocking
 
   // ------------------------------------------------------------
@@ -64,7 +64,7 @@ module tb_solution2char;
     .day(day),
     .convert(convert),
     .done_tx(done_tx),
-    .message(message),
+    .message_flat(message_flat),
     .done(done)
   );
 
