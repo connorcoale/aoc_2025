@@ -22,28 +22,35 @@
  *  Convert the given solution to a nicely formatted char string.
 */
 
-module solution2char (
-  input                 clock,
-  input                 resetn,
-  input [31:0]          solution_a,
-  input [31:0]          solution_b,
-  input [3:0]           day,
-  input                 convert,
-  input                 done_tx,
-  output reg [8*32-1:0] message_flat,
-  output reg            done
+module solution2char #(
+  parameter longint unsigned MAX_INT = 64'd999_999_999_999,
+  localparam int unsigned SOL_BIT_W  = $clog2(MAX_INT + 1),
+  localparam int unsigned SOL_DIG_W  = $rtoi($log10(MAX_INT)) + 1,
+  localparam int unsigned ASCII_W    = 8,
+  localparam int unsigned MSG_CHR_W  = 32,
+  localparam int unsigned MSG_BIT_W  = MSG_CHR_W * ASCII_W
+  ) (
+  input                      clock,
+  input                      resetn,
+  input [SOL_BIT_W-1:0]      solution_a,
+  input [SOL_BIT_W-1:0]      solution_b,
+  input [3:0]                day,
+  input                      convert,
+  input                      done_tx,
+  output reg [MSG_BIT_W-1:0] message_flat,
+  output reg                 done
 );
 
-  logic [7:0] message [32];
-  logic [3:0] bcd_a [10];
-  logic [4*10-1:0] bcd_a_flat;
-  logic [3:0] bcd_b [10];
-  logic [4*10-1:0] bcd_b_flat;
+  logic [ASCII_W-1:0]     message [MSG_CHR_W];
+  logic [3:0]             bcd_a [SOL_DIG_W];
+  logic [4*SOL_DIG_W-1:0] bcd_a_flat;
+  logic [3:0]             bcd_b [SOL_DIG_W];
+  logic [4*SOL_DIG_W-1:0] bcd_b_flat;
   always_comb begin
-    for (int i = 0; i < 10; i++) bcd_a[i] = bcd_a_flat[(i+1)*4-1-:4];
-    for (int i = 0; i < 10; i++) bcd_b[i] = bcd_b_flat[(i+1)*4-1-:4];
+    for (int i = 0; i < SOL_DIG_W; i++) bcd_a[i] = bcd_a_flat[(i+1)*4-1-:4];
+    for (int i = 0; i < SOL_DIG_W; i++) bcd_b[i] = bcd_b_flat[(i+1)*4-1-:4];
   end
-  bin2bcd bin2bcd_a (
+  bin2bcd #(.MAX_INT(MAX_INT)) bin2bcd_a (
     .clock(clock),
     .resetn(resetn),
     .convert(converting),
@@ -52,7 +59,7 @@ module solution2char (
     .done(done_a)
   );
 
-  bin2bcd bin2bcd_b (
+  bin2bcd #(.MAX_INT(MAX_INT)) bin2bcd_b (
     .clock(clock),
     .resetn(resetn),
     .convert(converting),
@@ -105,17 +112,21 @@ module solution2char (
 
 
   // Create the string in form:
-  // "XX: aaaaaaaaaa,bbbbbbbbbb" where XX = day, aaa... = soln a, bbb... = soln b
-  assign message[0]  = 8'(day > 9) + 8'd48; // 0 or 1 for first char of the day number
-  assign message[1]  = 8'((day > 9) ? day - 10 : day) + 8'd48; // the second char of the day number
-  assign message[2]  = 8'h3A; // ":" ascii char
-  assign message[3]  = 8'h20; // " " ascii char
-  assign message[14] = 8'h2c; // "," ascii char
+  // "XX: aaaaaaaaaaaa,bbbbbbbbbbbb" where XX = day, aaa... = soln a, bbb... = soln b
+  localparam SOL_A_IDX = 4;
+  localparam COMMA_IDX = SOL_A_IDX + SOL_DIG_W;
+  localparam SOL_B_IDX = COMMA_IDX + 1;
+  localparam MSG_END   = SOL_B_IDX + SOL_DIG_W;
+  assign message[0]         = 8'(day > 9) + 8'd48; // 0 or 1 for first char of the day number
+  assign message[1]         = 8'((day > 9) ? day - 10 : day) + 8'd48; // the second char of the day number
+  assign message[2]         = 8'h3A; // ":" ascii char
+  assign message[3]         = 8'h20; // " " ascii char
+  assign message[COMMA_IDX] = 8'h2c; // "," ascii char
   always_comb begin
     // Need to flip the ordering for printing in a string, hence 9-i
-    for (int i = 0; i < 10; i++)   message[i + 04] = bcd_a[9-i] + 8'd48;
-    for (int j = 0; j < 10; j++)   message[j + 15] = bcd_b[9-j] + 8'd48; // same as above
-    for (int k = 25; k < 32; k++ ) message[k]      = 8'd0;
+    for (int i = SOL_A_IDX; i < COMMA_IDX; i++)   message[i] = bcd_a[(SOL_DIG_W - 1) - (i - SOL_A_IDX)] + 8'd48;
+    for (int j = SOL_B_IDX; j < MSG_END;   j++)   message[j] = bcd_b[(SOL_DIG_W - 1) - (j - SOL_B_IDX)] + 8'd48; // same as above
+    for (int k = MSG_END;   k < MSG_CHR_W; k++ )  message[k] = 8'd0;
   end
-  always_comb for (int i = 0; i < 32; i++) message_flat[(i+1)*8-1-:8] = message[i];
+  always_comb for (int i = 0; i < MSG_CHR_W; i++) message_flat[(i+1)*8-1-:8] = message[i];
 endmodule

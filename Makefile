@@ -80,7 +80,7 @@ $(SIM_RESDIR)/Vtb_02: tb/tb_02.sv $(GEN_SRC)
 	$(SIM_TOOL) $(SIM_FLAGS) tb/tb_02.sv -Isrc -f src/filelist/part_02.f
 
 # Rule for tb_solution2char
-$(SIM_RESDIR)/Vtb_solution2char: tb/tb_solution2char.sv
+$(SIM_RESDIR)/Vtb_solution2char: tb/tb_solution2char.sv src/lib/bin2bcd/bin2bcd.sv
 	$(SIM_TOOL) $(SIM_FLAGS) tb/tb_solution2char.sv -Isrc -f src/filelist/solution2char.f
 
 verilate_all: $(GEN_SRC) $(VERILATION_TARGETS)

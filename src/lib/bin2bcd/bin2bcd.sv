@@ -19,25 +19,29 @@
 
 /*
  *  bin2bcd.sv
- *  Convert the given 32 binary to bcd
+ *  Convert the given binary to bcd
 */
 
-module bin2bcd (
-  input clock,
-  input resetn,
-  input convert,
-  input [31:0] data,
-  output [4*10-1:0] bcd_flat, // 10 digits max in 32 bit integer
+module bin2bcd #(
+  parameter longint unsigned MAX_INT = 64'd999_999_999_999,
+  localparam int unsigned BITS_W     = $clog2(MAX_INT + 1),
+  localparam int unsigned DIG_W      = $rtoi($log10(MAX_INT)) + 1
+) (
+  input                clock,
+  input                resetn,
+  input                convert,
+  input [BITS_W-1:0]   data,
+  output [4*DIG_W-1:0] bcd_flat,
   output reg done
 ); 
 
-  logic [5:0] cnt, cnt_next;
+  logic [$clog2(BITS_W)-1:0] cnt, cnt_next;
   always_ff @(posedge clock or negedge resetn) begin
     if (!resetn) cnt <= '0;
     else         cnt <= cnt_next;
   end
 
-  logic [31:0] data_r, data_next;
+  logic [BITS_W-1:0] data_r, data_next;
   always_ff @(posedge clock) data_r <= data_next;
   
   typedef enum {
@@ -66,7 +70,7 @@ module bin2bcd (
       BUSY: begin
         cnt_next = cnt + 1'b1;
         data_next = data_r << 1;
-        if (cnt == 31) state_next = DONE;
+        if (cnt == BITS_W - 1) state_next = DONE;
       end
       DONE: begin
         if (!convert) state_next = IDLE;
@@ -76,10 +80,10 @@ module bin2bcd (
   end
 
 
-  logic [4*10-1:0] nibbles_flat;
-  logic [4*10-1:0] nibbles_shifted_flat;
-  logic [4*10-1:0] nibbles_add3_flat;
-  logic [4*10-1:0] nibbles_next_flat;
+  logic [4*DIG_W-1:0] nibbles_flat;
+  logic [4*DIG_W-1:0] nibbles_shifted_flat;
+  logic [4*DIG_W-1:0] nibbles_add3_flat;
+  logic [4*DIG_W-1:0] nibbles_next_flat;
   // logic [3:0] nibbles [10];
   // logic [3:0] nibbles_shifted [10];
   // logic [3:0] nibbles_add3 [10];
@@ -96,10 +100,10 @@ module bin2bcd (
     nibbles_shifted_flat = '0;
     nibbles_add3_flat = '0;
     if (state_r == BUSY) begin
-      nibbles_shifted_flat = {nibbles_flat[38:0], data_r[31]};
-      for (int j = 0; j < 4*10; j = j + 4) begin
+      nibbles_shifted_flat = {nibbles_flat[4*DIG_W-2:0], data_r[BITS_W-1]};
+      for (int j = 0; j <= 4*DIG_W; j = j + 4) begin
         // Add 3 to any nibble which is over 4
-        nibbles_add3_flat[j-1-:4] = (nibbles_shifted_flat[j-1-:4] > 'd4 && cnt != 'd31) ? nibbles_shifted_flat[j-1-:4] + 'd3 : nibbles_shifted_flat[j-1-:4];
+        nibbles_add3_flat[j-1-:4] = (nibbles_shifted_flat[j-1-:4] > 'd4 && cnt != BITS_W-1) ? nibbles_shifted_flat[j-1-:4] + 'd3 : nibbles_shifted_flat[j-1-:4];
       end
       nibbles_next_flat = nibbles_add3_flat;
     end else if (state_r == DONE) begin

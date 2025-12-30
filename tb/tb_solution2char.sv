@@ -21,11 +21,11 @@
 module tb_solution2char;
   logic clock;
   logic resetn;
-  logic [31:0] solution_a, solution_b;
+  logic [40-1:0] solution_a, solution_b;
   logic [3:0] day;
   logic convert;
   logic done_tx;
-  logic [8*32-1:0] message_flat;
+  logic [8*40-1:0] message_flat;
   logic done;
 
   // ------------------------------------------------------------
@@ -82,8 +82,8 @@ module tb_solution2char;
   initial begin
     // Default values
     cb.resetn     <= 1'b0;
-    cb.solution_a <= 32'd123456789;
-    cb.solution_b <= 32'd987654321;
+    cb.solution_a <= 40'd123456789000;
+    cb.solution_b <= 40'd987654321000;
     cb.day        <= 4'd7;
     cb.convert    <= 1'b0;
 
@@ -99,11 +99,31 @@ module tb_solution2char;
     cb.convert <= 1'b0;
 
     // Wait for completion
-    repeat (500) @(cb);
+    @(posedge done);
+
+    repeat (50) @(cb);
     cb.done_tx <= 1'b1;
     @(cb);
     cb.done_tx <= 1'b0;
-    repeat (10) @(cb);
+    @(cb);
+
+    // flip which input is which, change day
+    cb.solution_a <= 40'd987654321000;
+    cb.solution_b <= 40'd123456789000;
+    cb.day        <= 4'd11;
+    cb.convert    <= 1'b1;
+    @(cb);
+    cb.convert <= 1'b0;
+
+
+    // Wait for completion
+    @(posedge done);
+    repeat (50) @(cb);
+
+    @(cb);
+    cb.resetn <= 1'b0;
+    @(cb);
+    cb.resetn <= 1'b1;
     $finish;
   end
 
