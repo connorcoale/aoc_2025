@@ -203,31 +203,55 @@ module safe_twister #(
   // determine how many twists were needed to get to this point
   logic [$clog2(10)-1:0] twist_modulo;
   always_comb begin
-    case (twisted_dial_total) inside
-      [-999: -901] : twist_modulo = 'd10;
-      [-900: -801] : twist_modulo = 'd9;
-      [-800: -701] : twist_modulo = 'd8;
-      [-700: -601] : twist_modulo = 'd7;
-      [-600: -501] : twist_modulo = 'd6;
-      [-500: -401] : twist_modulo = 'd5;
-      [-400: -301] : twist_modulo = 'd4;
-      [-300: -201] : twist_modulo = 'd3;
-      [-200: -101] : twist_modulo = 'd2;
-      [-100:   -1] : twist_modulo = 'd1;
-      [   0:  100] : twist_modulo = 'd0;
-      [ 101:  200] : twist_modulo = 'd1;
-      [ 201:  300] : twist_modulo = 'd2;
-      [ 301:  400] : twist_modulo = 'd3;
-      [ 401:  500] : twist_modulo = 'd4;
-      [ 501:  600] : twist_modulo = 'd5;
-      [ 601:  700] : twist_modulo = 'd6;
-      [ 701:  800] : twist_modulo = 'd7;
-      [ 801:  900] : twist_modulo = 'd8;
-      [ 901: 1000] : twist_modulo = 'd9;
-      [1001: 1098] : twist_modulo = 'd10;
-      default      : twist_modulo = 'd0;
-    endcase
-  end
+    if      (-999  <= twisted_dial_total && twisted_dial_total <= -901) twist_modulo = 10;
+    else if (-900  <= twisted_dial_total && twisted_dial_total <= -801) twist_modulo = 9;
+    else if (-800  <= twisted_dial_total && twisted_dial_total <= -701) twist_modulo = 8;
+    else if (-700  <= twisted_dial_total && twisted_dial_total <= -601) twist_modulo = 7;
+    else if (-600  <= twisted_dial_total && twisted_dial_total <= -501) twist_modulo = 6;
+    else if (-500  <= twisted_dial_total && twisted_dial_total <= -401) twist_modulo = 5;
+    else if (-400  <= twisted_dial_total && twisted_dial_total <= -301) twist_modulo = 4;
+    else if (-300  <= twisted_dial_total && twisted_dial_total <= -201) twist_modulo = 3;
+    else if (-200  <= twisted_dial_total && twisted_dial_total <= -101) twist_modulo = 2;
+    else if (-100  <= twisted_dial_total && twisted_dial_total <=   -1) twist_modulo = 1;
+    else if (   0  <= twisted_dial_total && twisted_dial_total <=  100) twist_modulo = 0;
+    else if ( 101  <= twisted_dial_total && twisted_dial_total <=  200) twist_modulo = 1;
+    else if ( 201  <= twisted_dial_total && twisted_dial_total <=  300) twist_modulo = 2;
+    else if ( 301  <= twisted_dial_total && twisted_dial_total <=  400) twist_modulo = 3;
+    else if ( 401  <= twisted_dial_total && twisted_dial_total <=  500) twist_modulo = 4;
+    else if ( 501  <= twisted_dial_total && twisted_dial_total <=  600) twist_modulo = 5;
+    else if ( 601  <= twisted_dial_total && twisted_dial_total <=  700) twist_modulo = 6;
+    else if ( 701  <= twisted_dial_total && twisted_dial_total <=  800) twist_modulo = 7;
+    else if ( 801  <= twisted_dial_total && twisted_dial_total <=  900) twist_modulo = 8;
+    else if ( 901  <= twisted_dial_total && twisted_dial_total <= 1000) twist_modulo = 9;
+    else if ( 1001 <= twisted_dial_total && twisted_dial_total <= 1098) twist_modulo = 10;
+    else twist_modulo = 0;
+  end  
+  // always_comb begin
+    // case (twisted_dial_total) inside
+      // [-999: -901] : twist_modulo = 'd10;
+      // [-900: -801] : twist_modulo = 'd9;
+      // [-800: -701] : twist_modulo = 'd8;
+      // [-700: -601] : twist_modulo = 'd7;
+      // [-600: -501] : twist_modulo = 'd6;
+      // [-500: -401] : twist_modulo = 'd5;
+      // [-400: -301] : twist_modulo = 'd4;
+      // [-300: -201] : twist_modulo = 'd3;
+      // [-200: -101] : twist_modulo = 'd2;
+      // [-100:   -1] : twist_modulo = 'd1;
+      // [   0:  100] : twist_modulo = 'd0;
+      // [ 101:  200] : twist_modulo = 'd1;
+      // [ 201:  300] : twist_modulo = 'd2;
+      // [ 301:  400] : twist_modulo = 'd3;
+      // [ 401:  500] : twist_modulo = 'd4;
+      // [ 501:  600] : twist_modulo = 'd5;
+      // [ 601:  700] : twist_modulo = 'd6;
+      // [ 701:  800] : twist_modulo = 'd7;
+      // [ 801:  900] : twist_modulo = 'd8;
+      // [ 901: 1000] : twist_modulo = 'd9;
+      // [1001: 1098] : twist_modulo = 'd10;
+      // default      : twist_modulo = 'd0;
+    // endcase
+  // end
 
   // Determine what the new dial number is without using
   // modulo operator, as it takes a lot of hardware resources

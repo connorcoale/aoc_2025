@@ -1,5 +1,5 @@
 read_verilog -sv src/top.sv
-# read_verilog -sv src/part_01.sv
+read_verilog -sv src/part_01.sv
 read_verilog -sv src/part_02.sv
 read_verilog -sv src/solution2char.sv
 read_verilog -sv src/lib/uart/uart_rx.sv
@@ -16,12 +16,13 @@ proc
 opt
 fsm
 opt
-memory
+memory_collect
 opt
 techmap
 opt
-flatten
-opt
+
+# write synthesized netlist
+write_verilog syn/synth.v
 
 # Usage report
-stat
+tee -o syn/top.rpt stat

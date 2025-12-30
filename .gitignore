@@ -31,3 +31,7 @@ sim/stimulus/[01][0-9]/input_*.txt
 *.bsp
 *scala-build
 src/part_02.sv
+
+# Synthesis
+syn/*.rpt
+syn/*.v

@@ -3,7 +3,7 @@ TOP    = top
 TB_TOP = tb_top
 
 # SOURCE FILE DEFINITIONS (plus dependencies)
-SOURCES    = src/top.sv src/part_01.sv src/solution2char.sv
+SOURCES    = src/top.sv src/part_01.sv src/solution2char.sv src/part_02.sv
 DEPS       =
 LIBS       = src/lib/uart/uart_rx.sv src/lib/uart/uart_tx.sv src/lib/mem/mem_arty_4kb_wrapper.sv src/lib/mem/mem_arty_205kb_wrapper.sv lib/bin2bcd/bin2bcd.sv
 
@@ -101,3 +101,6 @@ generate_bitstream: fpga/arty-a7-35t/compile.tcl
 
 flash_bitstream:
 	echo "not yet implemented"
+
+syn: ${SOURCES}
+	yosys syn/syn.ys > syn/syn.log
