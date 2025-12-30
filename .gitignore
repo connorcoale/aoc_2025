@@ -35,3 +35,5 @@ src/part_02.sv
 # Synthesis
 syn/*.rpt
 syn/*.v
+syn/*.pdf*
+syn/*.dot

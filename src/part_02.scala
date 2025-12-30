@@ -5,6 +5,7 @@
 //> using options -unchecked -deprecation -language:reflectiveCalls -feature -Xcheckinit
 //> using options -Xfatal-warnings -Ywarn-dead-code -Ywarn-unused -Ymacro-annotations
 
+import scala.io.Source
 import chisel3._
 // _root_ disambiguates from package chisel3.util.circt if user imports chisel3.util._
 import _root_.circt.stage.ChiselStage
@@ -313,10 +314,24 @@ class IDChecker (bcdWidth: Int) extends Module {
 }
 
 object Main extends App {
+
+  def countDashes(path: String): Int = {
+    val src = Source.fromFile(path)
+    try {
+      src.mkString.count(_ == '-')
+    } finally {
+      src.close()
+    }
+  }
   println(
     ChiselStage.emitSystemVerilog(
-      gen = new part_02(40),
-      firtoolOpts = Array("-disable-all-randomization", "-strip-debug-info", "-default-layer-specialization=enable", "--lowering-options=disallowLocalVariables")
+      gen = new part_02(countDashes("sim/stimulus/02/input_02.txt")),
+      firtoolOpts = Array("-o", "src/part_02.sv",
+                          "-disable-all-randomization",
+                          "-strip-debug-info",
+                          "-default-layer-specialization=enable",
+                          "--lowering-options=disallowLocalVariables"
+                         )
     )
   )
 }

@@ -24,5 +24,15 @@ opt
 # write synthesized netlist
 write_verilog syn/synth.v
 
-# Usage report
+# Overall usage report
 tee -o syn/top.rpt stat
+
+# # Make part_01 the top
+select -module part_01
+flatten
+tee -o syn/part_01.rpt stat -hierarchy
+
+# # Make part_02 the top
+select -module part_02
+flatten
+tee -o syn/part_02.rpt stat -hierarchy

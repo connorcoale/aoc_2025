@@ -43,12 +43,17 @@ clean:
 	rm -rf $(SIM_RESDIR)/*
 	rm -f $(GEN_SRC)
 	rm -f $(BITSTREAM)
+	rm -f sim/trace/*.vcd
+	rm -f syn/*.rpt
+	rm -f syn/*.pdf*
+	rm -f syn/*.dot
+	rm -f syn/*.log
 
 # ========================
 # Scala -> SV generation
 # ========================
 $(GEN_SRC): $(SCALA_SRC)
-	scala-cli $< > $@
+	scala-cli $<
 
 # ========================
 # Create simulation directory
@@ -108,7 +113,7 @@ run_sim_all: compile_sim_all
 # ========================
 .PHONY: syn
 syn: $(GEN_SRC)
-	yosys syn/syn.ys > syn/syn.log
+	yosys -l syn/syn_top.log syn/syn_top.ys
 
 # ========================
 # Vivado bitstream generation
