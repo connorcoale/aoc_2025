@@ -72,4 +72,70 @@ module mem_arty_205kb #(
   logic [ID_WIDTH-1:0] block_rd_id_r;
   always_ff @(posedge clock) block_rd_id_r <= block_rd_id;
   assign rd_data = block_rd_data[block_rd_id_r];
+
+  task automatic tb_write(
+      input int unsigned global_addr,
+      input logic [WIDTH-1:0] data
+  );
+      int unsigned bram;
+      int unsigned local_addr;
+
+      bram  = global_addr >> 12;
+      local_addr = global_addr & 12'hFFF;
+
+      // Have to do it this way because of verilator quirks...
+      case (bram)
+          00: gen_mem[00].i_mem.mem[local_addr] = data;
+          01: gen_mem[01].i_mem.mem[local_addr] = data;
+          02: gen_mem[02].i_mem.mem[local_addr] = data;
+          03: gen_mem[03].i_mem.mem[local_addr] = data;
+          04: gen_mem[04].i_mem.mem[local_addr] = data;
+          05: gen_mem[05].i_mem.mem[local_addr] = data;
+          06: gen_mem[06].i_mem.mem[local_addr] = data;
+          07: gen_mem[07].i_mem.mem[local_addr] = data;
+          08: gen_mem[08].i_mem.mem[local_addr] = data;
+          09: gen_mem[09].i_mem.mem[local_addr] = data;
+          10: gen_mem[10].i_mem.mem[local_addr] = data;
+          11: gen_mem[11].i_mem.mem[local_addr] = data;
+          12: gen_mem[12].i_mem.mem[local_addr] = data;
+          13: gen_mem[13].i_mem.mem[local_addr] = data;
+          14: gen_mem[14].i_mem.mem[local_addr] = data;
+          15: gen_mem[15].i_mem.mem[local_addr] = data;
+          16: gen_mem[16].i_mem.mem[local_addr] = data;
+          17: gen_mem[17].i_mem.mem[local_addr] = data;
+          18: gen_mem[18].i_mem.mem[local_addr] = data;
+          19: gen_mem[19].i_mem.mem[local_addr] = data;
+          20: gen_mem[20].i_mem.mem[local_addr] = data;
+          21: gen_mem[21].i_mem.mem[local_addr] = data;
+          22: gen_mem[22].i_mem.mem[local_addr] = data;
+          23: gen_mem[23].i_mem.mem[local_addr] = data;
+          24: gen_mem[24].i_mem.mem[local_addr] = data;
+          25: gen_mem[25].i_mem.mem[local_addr] = data;
+          26: gen_mem[26].i_mem.mem[local_addr] = data;
+          27: gen_mem[27].i_mem.mem[local_addr] = data;
+          28: gen_mem[28].i_mem.mem[local_addr] = data;
+          29: gen_mem[29].i_mem.mem[local_addr] = data;
+          30: gen_mem[30].i_mem.mem[local_addr] = data;
+          31: gen_mem[31].i_mem.mem[local_addr] = data;
+          32: gen_mem[32].i_mem.mem[local_addr] = data;
+          33: gen_mem[33].i_mem.mem[local_addr] = data;
+          34: gen_mem[34].i_mem.mem[local_addr] = data;
+          35: gen_mem[35].i_mem.mem[local_addr] = data;
+          36: gen_mem[36].i_mem.mem[local_addr] = data;
+          37: gen_mem[37].i_mem.mem[local_addr] = data;
+          38: gen_mem[38].i_mem.mem[local_addr] = data;
+          39: gen_mem[39].i_mem.mem[local_addr] = data;
+          40: gen_mem[40].i_mem.mem[local_addr] = data;
+          41: gen_mem[41].i_mem.mem[local_addr] = data;
+          42: gen_mem[42].i_mem.mem[local_addr] = data;
+          43: gen_mem[43].i_mem.mem[local_addr] = data;
+          44: gen_mem[44].i_mem.mem[local_addr] = data;
+          45: gen_mem[45].i_mem.mem[local_addr] = data;
+          46: gen_mem[46].i_mem.mem[local_addr] = data;
+          47: gen_mem[47].i_mem.mem[local_addr] = data;
+          48: gen_mem[48].i_mem.mem[local_addr] = data;
+          49: gen_mem[49].i_mem.mem[local_addr] = data;
+          default: ;
+      endcase
+  endtask
 endmodule
