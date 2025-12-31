@@ -30,6 +30,7 @@ module bin2bcd #(
   input                clock,
   input                resetn,
   input                convert,
+  input                hold,
   input [BITS_W-1:0]   data,
   output [4*DIG_W-1:0] bcd_flat,
   output reg done
@@ -73,7 +74,7 @@ module bin2bcd #(
         if (cnt == BITS_W - 1) state_next = DONE;
       end
       DONE: begin
-        if (!convert) state_next = IDLE;
+        if (!(convert || hold)) state_next = IDLE;
         done = 1'b1;
       end
     endcase
@@ -84,15 +85,6 @@ module bin2bcd #(
   logic [4*DIG_W-1:0] nibbles_shifted_flat;
   logic [4*DIG_W-1:0] nibbles_add3_flat;
   logic [4*DIG_W-1:0] nibbles_next_flat;
-  // logic [3:0] nibbles [10];
-  // logic [3:0] nibbles_shifted [10];
-  // logic [3:0] nibbles_add3 [10];
-  // logic [3:0] nibbles_next [10];
-  // task automatic set_nibbles_next_0;
-    // for (int i = 0; i < 10; i++) begin
-      // nibbles_next[i] = '0;
-    // end
-  // endtask
 
   always_comb begin
     // set_nibbles_next_0();
@@ -114,9 +106,4 @@ module bin2bcd #(
     nibbles_flat <= nibbles_next_flat;
   end
   assign bcd_flat = nibbles_flat;
-
-  // logic [3:0] bcd [10];
-  // always_comb for (int i = 0; i < 10; i++) bcd[i] = nibbles[i];
-  // always_comb for (int i = 0; i < 10; i++) bcd_flat[(i+1)*4-1-:4] = bcd[i];
-
 endmodule

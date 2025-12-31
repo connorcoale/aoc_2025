@@ -17,8 +17,8 @@ class part_02 (num: Int, bcdWidth: Int = 12) extends Module {
     val cs             = Input(Bool())
     val data           = Input(UInt(8.W))
     val data_valid     = Input(Bool())
-    val solution_a     = Output(UInt(80.W)) // change to 80 for now
-    val solution_b     = Output(UInt(80.W)) // change to 80 for now
+    val solution_a     = Output(UInt((4 * bcdWidth).W))
+    val solution_b     = Output(UInt((4 * bcdWidth).W))
     val solution_valid = Output(Bool())
   })
 
@@ -31,7 +31,6 @@ class part_02 (num: Int, bcdWidth: Int = 12) extends Module {
 
   val doneChecking = WireInit(false.B)
   val enLoad       = WireInit(false.B)
-  io.solution_valid := false.B
   switch (state) {
     is (State.idle) {
       when (io.data_valid && io.cs) {
@@ -51,7 +50,10 @@ class part_02 (num: Int, bcdWidth: Int = 12) extends Module {
       }
     }
     is (State.done) {
-      io.solution_valid := true.B
+      when (io.data_valid && io.cs) {
+        stateNext := State.loading
+        enLoad    := true.B
+      }
     }
   }
 
@@ -135,9 +137,9 @@ class part_02 (num: Int, bcdWidth: Int = 12) extends Module {
   totalA                := idChecker.io.totalOutA
   totalB                := idChecker.io.totalOutB
 
-  io.solution_a := shiftIn.num.asUInt
-  io.solution_b := shiftInShifted.num.asUInt
-  io.solution_valid := 0.B
+  io.solution_a     := totalA.num.asUInt
+  io.solution_b     := totalB.num.asUInt
+  io.solution_valid := state === State.done
 }
 
 class BCD (val bcdWidth: Int = 10, val isASCII: Boolean = false) extends Bundle {
@@ -156,6 +158,12 @@ class BCD (val bcdWidth: Int = 10, val isASCII: Boolean = false) extends Bundle 
   def ascii2dec: BCD = {
     val bcd = Wire(new BCD(bcdWidth))
     bcd.num.zip(num).map{case (dec, ascii) => dec := ascii(3, 0)}
+    bcd
+  }
+
+  def dec2ascii: BCD = {
+    val bcd = Wire(new BCD(bcdWidth, true))
+    bcd.num.zip(num).map{case (ascii, dec) => ascii := 48.U + dec}
     bcd
   }
 
@@ -310,7 +318,7 @@ class IDChecker (bcdWidth: Int) extends Module {
 
   io.totalOutA := runningTotalA
   io.totalOutB := runningTotalB
-  io.busy     := state === State.checking
+  io.busy      := state === State.checking
 }
 
 object Main extends App {

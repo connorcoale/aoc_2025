@@ -26,19 +26,20 @@ module solution2char #(
   parameter longint unsigned MAX_INT = 64'd999_999_999_999,
   localparam int unsigned SOL_BIT_W  = $clog2(MAX_INT + 1),
   localparam int unsigned SOL_DIG_W  = $rtoi($log10(MAX_INT)) + 1,
+  localparam int unsigned BCD_BIT_W  = 4 * SOL_DIG_W,
   localparam int unsigned ASCII_W    = 8,
   localparam int unsigned MSG_CHR_W  = 32,
   localparam int unsigned MSG_BIT_W  = MSG_CHR_W * ASCII_W
   ) (
   input                      clock,
   input                      resetn,
-  input [SOL_BIT_W-1:0]      solution_a,
-  input [SOL_BIT_W-1:0]      solution_b,
+  input [BCD_BIT_W-1:0]      solution_a,
+  input [BCD_BIT_W-1:0]      solution_b,
   input [3:0]                day,
   input                      convert,
   input                      done_tx,
   output reg [MSG_BIT_W-1:0] message_flat,
-  output reg                 done
+  output                     done
 );
 
   logic [ASCII_W-1:0]     message [MSG_CHR_W];
@@ -54,6 +55,7 @@ module solution2char #(
     .clock(clock),
     .resetn(resetn),
     .convert(converting),
+    .hold(hold),
     .data(solution_a),
     .bcd_flat(bcd_a_flat),
     .done(done_a)
@@ -63,13 +65,15 @@ module solution2char #(
     .clock(clock),
     .resetn(resetn),
     .convert(converting),
+    .hold(hold),
     .data(solution_b),
     .bcd_flat(bcd_b_flat),
     .done(done_b)
   );
 
-  wire both_done = done_a && done_b;
-  logic converting, converting_next;
+  wire isBCD = day == 4'd2; // TODO: Update this as I add more solutions that keep data in ASCII
+  wire both_done = done_a && done_b || isBCD;
+  logic converting, converting_next, done_converting, hold;
   typedef enum {
     IDLE,
     BUSY,
@@ -87,14 +91,18 @@ module solution2char #(
     end
   end
   always_comb begin
-    done = 1'b0;
+    done_converting = 1'b0;
     converting_next = converting;
-    state_next = state_r;
+    state_next      = state_r;
+    hold            = 1'b0;
     case (state_r)
       IDLE: begin
         if (convert) begin
-          converting_next = 1'b1;
-          state_next = BUSY;
+          if (isBCD) state_next = DONE;
+          else begin
+            converting_next = 1'b1;
+            state_next = BUSY;
+          end
         end
       end
       BUSY: begin
@@ -103,12 +111,14 @@ module solution2char #(
         end
       end
       DONE: begin
-        converting_next = !done_tx;
-        done = 1'b1;
+        converting_next = 1'b0;
+        hold            = 1'b1;
+        done_converting = 1'b1;
         state_next = done_tx ? IDLE : state_r;
       end
     endcase
   end
+  assign done = done_converting;
 
 
   // Create the string in form:
@@ -122,10 +132,21 @@ module solution2char #(
   assign message[2]         = 8'h3A; // ":" ascii char
   assign message[3]         = 8'h20; // " " ascii char
   assign message[COMMA_IDX] = 8'h2c; // "," ascii char
+  int ii, jj;
   always_comb begin
     // Need to flip the ordering for printing in a string, hence 9-i
-    for (int i = SOL_A_IDX; i < COMMA_IDX; i++)   message[i] = bcd_a[(SOL_DIG_W - 1) - (i - SOL_A_IDX)] + 8'd48;
-    for (int j = SOL_B_IDX; j < MSG_END;   j++)   message[j] = bcd_b[(SOL_DIG_W - 1) - (j - SOL_B_IDX)] + 8'd48; // same as above
+    for (int i = SOL_A_IDX; i < COMMA_IDX; i++) begin
+      ii = i - SOL_A_IDX;
+      message[i] = (isBCD ? solution_a[(BCD_BIT_W - ii * 4) - 1 -: 4]
+                        //    solution_a[(i * 4)-1-:4]
+                            : bcd_a[(SOL_DIG_W - 1) - (i - SOL_A_IDX)]) + 8'd48;
+    end
+    for (int j = SOL_B_IDX; j < MSG_END;   j++) begin
+      jj = j - SOL_B_IDX;
+      message[j] = (isBCD ? solution_b[(BCD_BIT_W - jj * 4) - 1 -: 4]
+      // solution_b[(j * 4)-1-:4]
+                            : bcd_b[(SOL_DIG_W - 1) - (j - SOL_B_IDX)]) + 8'd48;
+    end
     for (int k = MSG_END;   k < MSG_CHR_W; k++ )  message[k] = 8'd0;
   end
   always_comb for (int i = 0; i < MSG_CHR_W; i++) message_flat[(i+1)*8-1-:8] = message[i];

@@ -68,7 +68,7 @@ $(SIM_RESDIR):
 
 VERILATION_TARGETS = $(SIM_RESDIR)/Vtb_top $(SIM_RESDIR)/Vtb_01 $(SIM_RESDIR)/Vtb_02 $(SIM_RESDIR)/Vtb_solution2char
 
-$(SIM_RESDIR)/Vtb_top: tb/tb_top.sv $(GEN_SRC)
+$(SIM_RESDIR)/Vtb_top: tb/tb_top.sv src/*.sv $(GEN_SRC)
 	$(SIM_TOOL) $(SIM_FLAGS) tb/tb_top.sv -Isrc -f src/filelist/top.f
 
 # Rule for tb_01

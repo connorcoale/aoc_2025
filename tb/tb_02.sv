@@ -23,7 +23,7 @@ module tb_02 ();
   logic cs;
   logic [7:0] data;
   logic data_valid;
-  logic [31:0] solution_a, solution_b;
+  logic [47:0] solution_a, solution_b;
   logic solution_valid;
 
   initial begin

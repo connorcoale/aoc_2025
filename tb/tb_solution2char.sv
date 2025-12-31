@@ -21,11 +21,11 @@
 module tb_solution2char;
   logic clock;
   logic resetn;
-  logic [40-1:0] solution_a, solution_b;
+  logic [48-1:0] solution_a, solution_b;
   logic [3:0] day;
   logic convert;
   logic done_tx;
-  logic [8*40-1:0] message_flat;
+  logic [8*32-1:0] message_flat;
   logic done;
 
   // ------------------------------------------------------------
@@ -82,8 +82,8 @@ module tb_solution2char;
   initial begin
     // Default values
     cb.resetn     <= 1'b0;
-    cb.solution_a <= 40'd123456789000;
-    cb.solution_b <= 40'd987654321000;
+    cb.solution_a <= 48'd123456789000;
+    cb.solution_b <= 48'd987654321000;
     cb.day        <= 4'd7;
     cb.convert    <= 1'b0;
 
@@ -107,23 +107,27 @@ module tb_solution2char;
     cb.done_tx <= 1'b0;
     @(cb);
 
-    // flip which input is which, change day
-    cb.solution_a <= 40'd987654321000;
-    cb.solution_b <= 40'd123456789000;
-    cb.day        <= 4'd11;
+    // flip which input goes to which, change day to a day that in bcd encoded (note we use hex here, not decimal)
+    cb.solution_a <= 48'h987654321000;
+    cb.solution_b <= 48'h123456789000;
+    cb.day        <= 4'd2;
     cb.convert    <= 1'b1;
     @(cb);
-    cb.convert <= 1'b0;
+    cb.convert    <= 1'b0;
 
 
-    // Wait for completion
-    @(posedge done);
+    // Completion occurs immediately for a bcd encoded problem
     repeat (50) @(cb);
+    cb.done_tx <= 1'b1;
+    @(cb);
+    cb.done_tx <= 1'b0;
+    @(cb);
 
     @(cb);
     cb.resetn <= 1'b0;
     @(cb);
     cb.resetn <= 1'b1;
+    repeat (10) @(cb);
     $finish;
   end
 
