@@ -8,9 +8,11 @@ LIBS     = src/lib/uart/uart_rx.sv src/lib/uart/uart_tx.sv \
            src/lib/mem/mem_arty_4kb_wrapper.sv src/lib/mem/mem_arty_205kb_wrapper.sv \
            lib/bin2bcd/bin2bcd.sv
 
-# Scala-generated SV files
-SCALA_SRC = src/part_02.scala
-GEN_SRC   = src/part_02.sv
+# Generated SV files
+SCALA_SRC    = src/part_02.scala
+CHISEL_GEN    = src/part_02.sv
+HARDCAML_SRC = src/part_03/lib/datapath.ml
+HARDCAML_GEN = src/part_03.sv
 
 # Testbenches
 TBS      = tb_top tb_01 tb_02 tb_solution2char
@@ -41,19 +43,31 @@ all: compile_sim_all
 # ========================
 clean:
 	rm -rf $(SIM_RESDIR)/*
-	rm -f $(GEN_SRC)
+	rm -f $(CHISEL_GEN)
+	rm -f $(HARDCAML_GEN)
 	rm -f $(BITSTREAM)
 	rm -f sim/trace/*.vcd
 	rm -f syn/*.rpt
 	rm -f syn/*.pdf*
 	rm -f syn/*.dot
 	rm -f syn/*.log
+	rm -rf src/part_03/_build/*
 
 # ========================
 # Scala -> SV generation
 # ========================
-$(GEN_SRC): $(SCALA_SRC)
-	scala-cli $<
+GEN_CHISEL   = src/part_02.sv src/part_03.sv
+gen_chisel: $(SCALA_SRC)
+	scala-cli $(SCALA_SRC)
+
+gen_hardcaml: $(HARDCAML_SRC)
+	cd src/part_03 && dune build && ./_build/default/main.exe && cd ../..
+
+$(CHISEL_GEN): gen_chisel
+	echo "compiling chisel sources"
+	
+$(HARDCAML_GEN): gen_hardcaml
+	echo "compiling hardcaml sources"
 
 # ========================
 # Create simulation directory
@@ -68,7 +82,7 @@ $(SIM_RESDIR):
 
 VERILATION_TARGETS = $(SIM_RESDIR)/Vtb_top $(SIM_RESDIR)/Vtb_01 $(SIM_RESDIR)/Vtb_02 $(SIM_RESDIR)/Vtb_solution2char
 
-$(SIM_RESDIR)/Vtb_top: tb/tb_top.sv src/*.sv $(GEN_SRC)
+$(SIM_RESDIR)/Vtb_top: tb/tb_top.sv src/*.sv $(CHISEL_GEN) $(HARDCAML_GEN)
 	$(SIM_TOOL) $(SIM_FLAGS) tb/tb_top.sv -Isrc -f src/filelist/top.f
 
 # Rule for tb_01
@@ -76,17 +90,14 @@ $(SIM_RESDIR)/Vtb_01: tb/tb_01.sv
 	$(SIM_TOOL) $(SIM_FLAGS) tb/tb_01.sv -Isrc -f src/filelist/part_01.f
 
 # Rule for tb_02
-$(SIM_RESDIR)/Vtb_02: tb/tb_02.sv $(GEN_SRC)
+$(SIM_RESDIR)/Vtb_02: tb/tb_02.sv $(CHISEL_GEN)
 	$(SIM_TOOL) $(SIM_FLAGS) tb/tb_02.sv -Isrc -f src/filelist/part_02.f
 
 # Rule for tb_solution2char
 $(SIM_RESDIR)/Vtb_solution2char: tb/tb_solution2char.sv src/lib/bin2bcd/bin2bcd.sv
 	$(SIM_TOOL) $(SIM_FLAGS) tb/tb_solution2char.sv -Isrc -f src/filelist/solution2char.f
 
-verilate_all: $(GEN_SRC) $(VERILATION_TARGETS)
-
-#$(SIM_RESDIR)/V%: tb/%.sv $(SRC) $(LIBS) $(SIM_RESDIR) $(GEN_SRC)
-#$(SIM_TOOL) $(SIM_FLAGS) tb/$*.sv -Isrc -f top.f
+verilate_all: $(CHISEL_GEN) $(HARDCAML_GEN) $(VERILATION_TARGETS)
 
 # ========================
 # Compile all simulations
@@ -112,7 +123,7 @@ run_sim_all: compile_sim_all
 # Simple yosys synthesis
 # ========================
 .PHONY: syn
-syn: $(GEN_SRC)
+syn: $(CHISEL_GEN) $(HARDCAML_GEN)
 	yosys -l syn/syn_top.log syn/syn_top.ys
 
 # ========================

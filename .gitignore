@@ -32,6 +32,10 @@ sim/stimulus/[01][0-9]/input_*.txt
 *scala-build
 src/part_02.sv
 
+# hardcaml
+src/part_03/_build
+src/part_03.sv
+
 # Synthesis
 syn/*.rpt
 syn/*.v
