@@ -11,7 +11,7 @@ LIBS     = src/lib/uart/uart_rx.sv src/lib/uart/uart_tx.sv \
 # Generated SV files
 SCALA_SRC    = src/part_02.scala
 CHISEL_GEN    = src/part_02.sv
-HARDCAML_SRC = src/part_03/lib/datapath.ml
+HARDCAML_SRC = src/part_03/lib/solve_03.ml
 HARDCAML_GEN = src/part_03.sv
 
 # Testbenches

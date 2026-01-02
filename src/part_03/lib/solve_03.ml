@@ -1,4 +1,4 @@
-(* open Hardcaml.Signal *)
+open Hardcaml
 open Hardcaml.Signal
 
 module I = struct
@@ -19,12 +19,25 @@ module O = struct
   } [@@deriving sexp_of, hardcaml]
 end
 
-(* let create (i : _ I.t) = 
-  let data_qual = (Signal.repeat ~n:32 i.data_valid) &: i.data in
-  { O.solution_a = data_qual } *)
-let create (i : _ I.t) = 
-  let valid32 = repeat i.data_valid 32 in
+let circuit scope (i : _ I.t) = 
+
+  let helper_in = 
+    {
+    Helper_03.I.in1 = i.cs;
+                in2 = i.data_valid
+    }
+  in
+
+  let helper = Helper_03.hierarchical scope helper_in in
+
+  let valid32 = repeat helper.out1 32 in
   let data_qual = valid32 &: uresize i.data 32 in
+
   { O.solution_a = data_qual;
-    solution_b = data_qual;       (* placeholder *)
-    solution_valid = i.data_valid }  (* example assignment *)
+    solution_b = data_qual;
+    solution_valid = i.data_valid }
+
+let hierarchical scope =
+  let module H = Hierarchy.In_scope (I) (O) in
+  H.hierarchical ~scope ~name:"solve_03" circuit
+;;
