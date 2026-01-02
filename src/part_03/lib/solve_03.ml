@@ -52,9 +52,16 @@ let circuit scope (i : _ I.t) =
   let shift_3 = uresize (shift_regs.(3)) 32 in
   let data_qual = out1_q32 &: uresize i.data 32 &: shift_3 in
 
+  let test_val = of_int ~width:400 0x48921012 in
+  let fmi = 
+    {
+      Find_max_bounded.I.bank = test_val;
+    } 
+  in
+  let find_max = Find_max_bounded.hierarchical scope fmi in
 
-  { O.solution_a = data_qual;
-    solution_b = data_qual;
+  { O.solution_a = data_qual +: uresize find_max.max 32;
+    solution_b = uresize find_max.max_idx 32;
     solution_valid = i.data_valid }
 
 let hierarchical scope =
