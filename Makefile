@@ -5,7 +5,7 @@
 # Source files
 SRC      = src/top.sv src/part_01.sv src/solution2char.sv
 LIBS     = src/lib/uart/uart_rx.sv src/lib/uart/uart_tx.sv \
-           src/lib/mem/mem_arty_4kb_wrapper.sv src/lib/mem/mem_arty_205kb_wrapper.sv \
+           src/lib/mem/mem_arty_full.sv \
            lib/bin2bcd/bin2bcd.sv
 
 # Generated SV files

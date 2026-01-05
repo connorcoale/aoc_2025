@@ -5,6 +5,5 @@ src/solution2char.sv
 
 src/lib/uart/uart_rx.sv
 src/lib/uart/uart_tx.sv
-src/lib/mem/mem_arty_4kb_wrapper.sv
-src/lib/mem/mem_arty_205kb.sv
+src/lib/mem/mem_arty_full.sv
 src/lib/bin2bcd/bin2bcd.sv

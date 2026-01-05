@@ -41,3 +41,6 @@ syn/*.rpt
 syn/*.v
 syn/*.pdf*
 syn/*.dot
+
+# Vivado
+*.jou

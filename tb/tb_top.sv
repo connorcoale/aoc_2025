@@ -112,32 +112,32 @@ module tb_top;
     $fclose(fd);
   endtask
 
-  task send_input_backdoor(input string fname);
-    int fd;
-    string line;
-    int unsigned addr = 0;
-    int unsigned day_mem_ptr = 1;
+  // task send_input_backdoor(input string fname);
+  //   int fd;
+  //   string line;
+  //   int unsigned addr = 0;
+  //   int unsigned day_mem_ptr = 1;
 
-    fd = $fopen(fname, "r");
-    if (fd == 0) begin
-      $fatal("Failed to open file: %s", fname);
-    end
+  //   fd = $fopen(fname, "r");
+  //   if (fd == 0) begin
+  //     $fatal("Failed to open file: %s", fname);
+  //   end
 
-    while (!$feof(fd)) begin
-      void'($fgets(line, fd));
-      foreach (line[i]) begin
-        if (addr != 0) i_dut.mem.tb_write(addr-1, line[i]);
-        if (line[i] == 8'h03) begin
-          i_dut.day_mem_addr[day_mem_ptr] = addr;
-          day_mem_ptr++;
-        end
-        addr++;
-      end
-    end
+  //   while (!$feof(fd)) begin
+  //     void'($fgets(line, fd));
+  //     foreach (line[i]) begin
+  //       if (addr != 0) i_dut.mem.tb_write(addr-1, line[i]);
+  //       if (line[i] == 8'h03) begin
+  //         i_dut.day_mem_addr[day_mem_ptr] = addr;
+  //         day_mem_ptr++;
+  //       end
+  //       addr++;
+  //     end
+  //   end
 
-    $display("Backdoor load complete: %0d bytes written", addr);
-    $fclose(fd);
-  endtask
+  //   $display("Backdoor load complete: %0d bytes written", addr);
+  //   $fclose(fd);
+  // endtask
 
   // ---------------------------------------------
   // Test sequence
@@ -159,8 +159,8 @@ module tb_top;
 
   // send_input("sim/stimulus/example_transmission.bin");
   // send_input("sim/stimulus/transmission.bin");
-  // send_input("sim/stimulus/transmission1-2.bin");
-  send_input_backdoor("sim/stimulus/transmission1-2.bin");
+  send_input("sim/stimulus/transmission1-2.bin");
+  // send_input_backdoor("sim/stimulus/transmission1-2.bin");
   repeat (100) @(posedge clock);
   print_input_n = 1'b0;
   @(posedge clock);

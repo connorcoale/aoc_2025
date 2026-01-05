@@ -93,9 +93,9 @@ module bin2bcd #(
     nibbles_add3_flat = '0;
     if (state_r == BUSY) begin
       nibbles_shifted_flat = {nibbles_flat[4*DIG_W-2:0], data_r[BITS_W-1]};
-      for (int j = 0; j <= 4*DIG_W; j = j + 4) begin
+      for (int j = 0; j < 4*DIG_W; j = j + 4) begin
         // Add 3 to any nibble which is over 4
-        nibbles_add3_flat[j-1-:4] = (nibbles_shifted_flat[j-1-:4] > 'd4 && cnt != BITS_W-1) ? nibbles_shifted_flat[j-1-:4] + 'd3 : nibbles_shifted_flat[j-1-:4];
+        nibbles_add3_flat[j+3-:4] = (nibbles_shifted_flat[j+3-:4] > 'd4 && cnt != BITS_W-1) ? nibbles_shifted_flat[j+3-:4] + 'd3 : nibbles_shifted_flat[j+3-:4];
       end
       nibbles_next_flat = nibbles_add3_flat;
     end else if (state_r == DONE) begin

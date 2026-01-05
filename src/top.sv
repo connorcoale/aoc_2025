@@ -89,7 +89,7 @@ module top (
   logic wr_en, rd_en;
   logic [7:0] wr_data, rd_data;
   logic [BRAM_ADDR_W-1:0] wr_addr, wr_addr_next, rd_addr, rd_addr_next;
-  mem_arty_205kb mem (
+  mem_arty_full mem (
     .clock(clock),
     .wr_en(wr_en),
     .wr_data(wr_data),
