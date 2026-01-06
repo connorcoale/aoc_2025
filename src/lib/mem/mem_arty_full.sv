@@ -26,7 +26,7 @@
 module mem_arty_full #(
   parameter N_ARTY_BRAM = 50,
   parameter WIDTH = 8,
-  parameter DEPTH = 4096 * N_ARTY_BRAM
+  parameter DEPTH = 4096 * (N_ARTY_BRAM - 10)
 ) (
   input clock,
   input wr_en,

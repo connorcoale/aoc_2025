@@ -25,7 +25,7 @@
 module top (
   input        clock,
   input        resetn,
-  input        print_input_n, // Simulation input to read all the memories
+  // input        print_input_n, // Simulation input to read all the memories
   input        solve_day_n,   // Button to press to solve the puzzle indicated by switches
   input        print_soln_n,
   input [3:0]  sw,            // Switches to select puzzle
@@ -53,7 +53,7 @@ module top (
   logic                    uart_tx_en;
 
   // Input signals
-  wire print_input = !print_input_n;
+  wire print_input = 1'b0 /* !print_input_n */;
   wire solve_day   = !solve_day_n   &&  4'd1 <= sw && sw <= ADVENT_N;
   wire print_soln  = !print_soln_n  &&  4'd1 <= sw && sw <= ADVENT_N;
 

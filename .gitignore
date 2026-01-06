@@ -44,3 +44,4 @@ syn/*.dot
 
 # Vivado
 *.jou
+*tight_setup_hold_pins.txt
