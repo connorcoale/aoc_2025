@@ -145,7 +145,6 @@ module tb_top;
   initial begin
   uart_rxd      = 1'b1;
   resetn        = 1'b0;
-  print_input_n = 1'b1;
   solve_day_n   = 1'b1;
   print_soln_n  = 1'b1;
   sw            = '0;
@@ -161,13 +160,6 @@ module tb_top;
   // send_input("sim/stimulus/transmission.bin");
   send_input("sim/stimulus/transmission1-2.bin");
   // send_input_backdoor("sim/stimulus/transmission1-2.bin");
-  repeat (100) @(posedge clock);
-  print_input_n = 1'b0;
-  @(posedge clock);
-  print_input_n = 1'b1;
-  repeat (100) @(posedge clock);
-
-
   repeat (50000) @(posedge clock);
   sw = 4'd01;
   solve_day_n = 1'b0;
@@ -217,7 +209,6 @@ module tb_top;
   ) i_dut (
   .clock         (clock),
   .resetn        (resetn),
-  .print_input_n (print_input_n),
   .solve_day_n   (solve_day_n),
   .print_soln_n  (print_soln_n),
   .sw            (sw),
