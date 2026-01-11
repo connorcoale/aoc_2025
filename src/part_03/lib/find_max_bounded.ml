@@ -49,9 +49,6 @@ module Make (P : Params) = struct
         tuples and give the max, or if they're equal,
         the one with the highest idx
       - smart pipelining?
-      - actually adhere to the range checking
-        - maybe just insert 0 values with idx = 0 for
-          invalid ranges (above prev_idx and below stage_num)
       - question: We could instantiate 12 of these in higher circuit
         and then wire together, but prob more efficient to
         instantiate one and do flopped feedback...

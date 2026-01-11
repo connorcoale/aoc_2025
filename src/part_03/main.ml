@@ -1,30 +1,30 @@
 open Hardcaml
 open Part_03
 
-module Part_03Circuit = Circuit.With_interface(Solve_03.I)(Solve_03.O)
-  
-(* let scope = Scope.create ()
-let circuit = 
-  Part_03Circuit.create_exn ~name:"part_03" (Solve_03.circuit scope) *)
+(* Functor thing *)
+module Solve_03_100 =
+  Solve_03.Make(struct
+    let bank_width = 100
+    let num_banks  = 200
+  end)
 
-module Find_max_100 =
-  Find_max_bounded.Make(struct let bank_width = 100 end)
-
+(* Top level circuit *)
 module C =
   Circuit.With_interface
-    (Find_max_100.I)
-    (Find_max_100.O)
+    (Solve_03_100.I)
+    (Solve_03_100.O)
 
 let scope = Scope.create ()
 
+(* Instantiate circuit *)
 let circuit =
   C.create_exn
-    ~name:"find_max_bounded_100"
-    (Find_max_100.circuit scope)
-
+    ~name:"solve_03_100"
+    (Solve_03_100.circuit scope)
 
 let output_mode = Rtl.Output_mode.To_file "../part_03.sv"
 
 let () = Rtl.output ~output_mode 
   ~database:(Scope.circuit_database scope)
-  Rtl.Language.Verilog circuit
+  Rtl.Language.Verilog 
+  circuit
