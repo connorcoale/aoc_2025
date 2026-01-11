@@ -103,12 +103,12 @@ class part_02 (num: Int, bcdWidth: Int = 12) extends Module {
   val check = state === State.checking && !idChecker.io.busy
   when (idChecker.io.done) {
     for (i <- 0 until num) {
-      if (i == num - 1) {
+      if (i == 0) {
         starts(i) := 0.U.asTypeOf(starts(i))
         ends(i)   := 0.U.asTypeOf(starts(i))
       } else {
-        starts(i) := starts(i+1)
-        ends(i)   := ends(i+1)
+        starts(i) := starts(i - 1)
+        ends(i)   := ends(i - 1)
       }
     }
   }
