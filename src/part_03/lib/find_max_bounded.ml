@@ -14,7 +14,7 @@ module Make (P : Params) = struct
   module I = struct
     type 'a t = {
       (* Flattened array of 4-bit values: bank_width entries total *)
-      bank     : 'a [@bits (4 * P.bank_width)];
+      bank     : 'a array; [@length P.bank_width] [@bits 4]
       prev_idx : 'a [@bits idx_width];
       low_idx  : 'a [@bits idx_width];
     } [@@deriving sexp_of, hardcaml]
@@ -28,11 +28,14 @@ module Make (P : Params) = struct
   end
   (* The actual circuit implementation *)
   let circuit scope (i : _ I.t) =
+
+    (* First create the list of input numbers, with indices *)
     let nums : (Signal.t * Signal.t) array =
       Array.init P.bank_width (fun n ->
-        let value = i.bank.:[(n*4 + 3, n*4)] in (* 4-bit slice *)
+        let value = i.bank.(n) in (* 4-bit slice *)
         let index = Signal.of_int ~width:7 n in
 
+        (* if not in the range determind by prev_idx and low_idx, force the value and index to 0 *)
         let in_range =  (i.prev_idx >: index) &: (index >: i.low_idx) in
         let adj_v    = Signal.of_int ~width:4 0 in
         let adj_i    = Signal.of_int ~width:idx_width 0 in
@@ -43,52 +46,25 @@ module Make (P : Params) = struct
       )
     in
 
-    (*
-      TODO:
-      - make a max() function which will take the two
-        tuples and give the max, or if they're equal,
-        the one with the highest idx
-      - smart pipelining?
-      - question: We could instantiate 12 of these in higher circuit
-        and then wire together, but prob more efficient to
-        instantiate one and do flopped feedback...
-        latency vs. throughput tradeoff
-    *)
-
-    (* arr must be tuple of (value, idx) so that we can
-       indicate for future bounded max selection which
-       range should be checked
-    *)
-    let rec max_with_index arr =
-      (* Base case: one element left *)
-      if Array.length arr = 1 then arr.(0)
-      else
-        (* Construct new array, half as large as original.
-           It is now:
-             {
-               max(arr.(0), arr.(1)),
-               max(arr.(2), arr.(3)),
-               ...
-             }
-           Then recurse over the tree.
-        *)
-        let pairs =
-          Array.init ((Array.length arr + 1) / 2) (fun i ->
-            if 2*i + 1 < Array.length arr then
-              let (v1, idx1) = arr.(2*i) in
-              let (v2, idx2) = arr.(2*i + 1) in
-              let sel = v1 >=: v2 in
-              let max_v   = mux2 sel v1   v2   in
-              let max_idx = mux2 sel idx1 idx2 in
-              (max_v, max_idx)
-            else
-              arr.(2*i)
-          )
-        in
-        max_with_index pairs
+    (* Get the max based on value, then based on idx if tie *)
+    let pair_max_with_index (lv, li) (rv, ri) =
+      let choose_left =
+        (lv >: rv) |:
+        ((lv ==: rv) &: (li >: ri))
+      in
+      ( mux2 choose_left lv rv
+      , mux2 choose_left li ri
+      )
     in
-
-    let (max_value, max_index) = max_with_index nums in
+    let reduce_max_with_index = function
+      | [x] -> x
+      | [x; y] -> pair_max_with_index x y
+      | xs ->
+          let x = List.hd xs in
+          let rest = List.tl xs in
+          List.fold_left pair_max_with_index x rest
+    in
+    let (max_value, max_index) = tree ~arity:2 ~f:reduce_max_with_index (Array.to_list nums) in
     ignore (Scope.naming scope max_value "max_value");
     ignore (Scope.naming scope max_index "max_index");
 
@@ -104,5 +80,4 @@ module Make (P : Params) = struct
       ~name:"find_max_bounded"
       circuit
       input
-
 end
