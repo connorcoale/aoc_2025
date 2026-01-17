@@ -29,8 +29,6 @@ module Make (P : Params) = struct
     type 'a t = { 
       solution_a     : 'a [@bits 32];
       solution_b     : 'a [@bits 32];
-      p2_max         : 'a [@bits 32];
-      p2_max_idx     : 'a [@bits 32];
       solution_valid : 'a;
     } [@@deriving sexp_of, hardcaml]
   end
@@ -74,13 +72,14 @@ module Make (P : Params) = struct
     - Stay in DONE until ...
     *)
     (* Declare fsm reg plus flags/control*)
-    let sm        = State_machine.create (module SMStates) ~enable:vdd spec in
-    let cnt2      = Variable.reg  ~width:2 spec in
-    let cnt12     = Variable.reg  ~width:4 spec in
-    let done_flag = Variable.wire ~default:gnd in
-    let loading   = Variable.wire ~default:gnd in 
-    let solve_a   = Variable.wire ~default:gnd in 
-    let solve_b   = Variable.wire ~default:gnd in 
+    let sm         = State_machine.create (module SMStates) ~enable:vdd spec in
+    let cnt2       = Variable.reg  ~width:4 spec in
+    let cnt12      = Variable.reg  ~width:4 spec in
+    let done_flag  = Variable.wire ~default:gnd in
+    let loading    = Variable.wire ~default:gnd in 
+    let solve_a    = Variable.wire ~default:gnd in 
+    let solve_b    = Variable.wire ~default:gnd in 
+    let init_solve = Variable.wire ~default:gnd in
     ignore (Scope.naming scope cnt2.value "cnt2");
     ignore (Scope.naming scope cnt12.value "cnt12");
     ignore (Scope.naming scope loading.value "loading");
@@ -99,6 +98,7 @@ module Make (P : Params) = struct
           cnt2    <--. 0;
           cnt12   <--. 0;
           when_ (isNL) [
+            init_solve <--. 1;
             sm.set_next CNT2_T
           ]
         ];
@@ -107,6 +107,7 @@ module Make (P : Params) = struct
           solve_a <--. 1;
           cnt2    <-- (cnt2.value +:. 1);
           when_ (cnt2.value ==:. 1) [
+            init_solve <--. 1;
             sm.set_next CNT12_T
           ]
         ];
@@ -148,48 +149,28 @@ module Make (P : Params) = struct
       ignore (Scope.naming scope bcd_staged.(stage) ("staged_" ^ string_of_int stage))
     done;
 
-    let part1_jolt_width =  2 in
-    let part2_jolt_width = 12 in
-    let prev_idx_init    = of_int ~width:7 (P.bank_width - 1    ) in
-    let low_idx_init1    = of_int ~width:7 (part1_jolt_width - 1) in
-    let low_idx_init2    = of_int ~width:7 (part2_jolt_width - 1) in
+    let part1_jolt_width = of_int ~width:7 2 in
+    let part2_jolt_width = of_int ~width:7 12 in
+    let jolt_width       = mux2 (sm.is CNT12_T) part2_jolt_width part1_jolt_width in
 
-    let f_dec_or_init init solve idx  = mux2 solve (idx -: of_int ~width:7 1) init in
-    let f_hold_or_init init idx = mux2 isNL init idx in
+    let low_idx      = jolt_width -: (uresize (mux2 (sm.is CNT12_T) cnt12.value cnt2.value) 7) in
+    let prev_idx     = wire 7 in
+    let prev_idx_reg = reg ~enable:vdd spec prev_idx in
+    ignore (Scope.naming scope prev_idx_reg ("prev_idx_reg"));
+    ignore (Scope.naming scope low_idx ("low_idx"));
 
-    let prev_idx1 = reg_fb spec ~width:7 ~f:(f_hold_or_init prev_idx_init) in
-    let prev_idx2 = reg_fb spec ~width:7 ~f:(f_hold_or_init prev_idx_init) in
-    let low_idx1  = reg_fb spec ~width:7 ~f:(f_dec_or_init low_idx_init1 solve_a.value) in
-    let low_idx2  = reg_fb spec ~width:7 ~f:(f_dec_or_init low_idx_init2 solve_b.value) in
-
-    ignore (Scope.naming scope prev_idx1 ("prev_idx1"));
-    ignore (Scope.naming scope prev_idx2 ("prev_idx2"));
-    ignore (Scope.naming scope low_idx1 ("low_idx1"));
-    ignore (Scope.naming scope low_idx2 ("low_idx2"));
-
-
-    let fm_input_1 : _ Find_max_n.I.t = 
+    let fm_input : _ Find_max_n.I.t = 
       { 
         Find_max_n.I.bank = bcd_staged;
-        prev_idx = prev_idx1 ;
-        low_idx  = low_idx1
+        prev_idx = prev_idx_reg;
+        low_idx  = low_idx 
       }
     in
-    let fm_output_1 = Find_max_n.hierarchical scope fm_input_1 in
+    let fm_output = Find_max_n.hierarchical scope fm_input in
+    prev_idx <== mux2 init_solve.value (of_int ~width:7 P.num_banks) fm_output.max_idx;
 
-    let fm_input_2 : _ Find_max_n.I.t = 
-      { 
-        Find_max_n.I.bank = bcd_staged;
-        prev_idx = prev_idx2 ;
-        low_idx  = low_idx2
-      }
-    in
-    let fm_output_2 = Find_max_n.hierarchical scope fm_input_2 in
-
-    { O.solution_a   = uresize fm_output_1.max     32;
-      solution_b     = uresize fm_output_1.max_idx 32;
-      p2_max         = uresize fm_output_2.max     32;
-      p2_max_idx     = uresize fm_output_2.max_idx 32;
+    { O.solution_a   = uresize fm_output.max     32;
+      solution_b     = uresize fm_output.max_idx 32;
       solution_valid = sm.is DONE_T
     }
 
