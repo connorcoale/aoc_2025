@@ -142,21 +142,29 @@ module Make (P : Params) = struct
     done;
   
     (* Stage the data to work on when it's a newline *)
-    let bcd_staged : Signal.t array = Array.init P.bank_width (fun stage ->
+    let bcd_staged : Signal.t array =
+      Array.init P.bank_width (fun stage ->
+        reg_fb spec ~width:4 ~f:(fun q ->
+          mux2 isNL bcd_in.(stage) q
+        )
+      )
+    in
+    (* let bcd_staged : Signal.t array = Array.init P.bank_width (fun stage ->
       reg spec (mux2 isNL bcd_in.(stage) (zero 4))  (* zero 4 for init *)
-    ) in
+    ) in *)
     for stage = 0 to P.bank_width - 1 do
       ignore (Scope.naming scope bcd_staged.(stage) ("staged_" ^ string_of_int stage))
     done;
 
     let part1_jolt_width = of_int ~width:7 2 in
     let part2_jolt_width = of_int ~width:7 12 in
-    let jolt_width       = mux2 (sm.is CNT12_T) part2_jolt_width part1_jolt_width in
+    let jolt_idx       = mux2 (sm.is CNT12_T) part2_jolt_width part1_jolt_width -: (of_int ~width:7 1) in
 
-    let low_idx      = jolt_width -: (uresize (mux2 (sm.is CNT12_T) cnt12.value cnt2.value) 7) in
+    let low_idx      = jolt_idx -: (uresize (mux2 (sm.is CNT12_T) cnt12.value cnt2.value) 7) in
     let prev_idx     = wire 7 in
     let prev_idx_reg = reg ~enable:vdd spec prev_idx in
     ignore (Scope.naming scope prev_idx_reg ("prev_idx_reg"));
+    ignore (Scope.naming scope prev_idx ("prev_idx"));
     ignore (Scope.naming scope low_idx ("low_idx"));
 
     let fm_input : _ Find_max_n.I.t = 
@@ -167,7 +175,7 @@ module Make (P : Params) = struct
       }
     in
     let fm_output = Find_max_n.hierarchical scope fm_input in
-    prev_idx <== mux2 init_solve.value (of_int ~width:7 P.num_banks) fm_output.max_idx;
+    prev_idx <== mux2 init_solve.value (of_int ~width:7 (P.bank_width - 1)) fm_output.max_idx;
 
     { O.solution_a   = uresize fm_output.max     32;
       solution_b     = uresize fm_output.max_idx 32;

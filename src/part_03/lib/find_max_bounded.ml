@@ -42,6 +42,9 @@ module Make (P : Params) = struct
         let value_adj = mux2 in_range value adj_v in
         let index_adj = mux2 in_range index adj_i in
         ignore (Scope.naming scope value ("num_" ^ string_of_int n));
+        ignore (Scope.naming scope in_range ("in_range_" ^ string_of_int n));
+        ignore (Scope.naming scope value_adj ("value_adj_" ^ string_of_int n));
+        ignore (Scope.naming scope index_adj ("index_adj_" ^ string_of_int n));
         (value_adj, index_adj)
       )
     in
@@ -70,7 +73,7 @@ module Make (P : Params) = struct
 
     {
       O.max     = max_value;
-      max_idx   = max_index +: i.prev_idx;
+      max_idx   = max_index;
     }
 
   let hierarchical scope input =
