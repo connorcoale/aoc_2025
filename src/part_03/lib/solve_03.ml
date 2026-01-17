@@ -74,13 +74,15 @@ module Make (P : Params) = struct
     - Stay in DONE until ...
     *)
     (* Declare fsm reg plus flags/control*)
-    let sm        = State_machine.create (module SMStates) ~enable:i.cs spec in
+    let sm        = State_machine.create (module SMStates) ~enable:vdd spec in
     let cnt2      = Variable.reg  ~width:2 spec in
     let cnt12     = Variable.reg  ~width:4 spec in
     let done_flag = Variable.wire ~default:gnd in
     let loading   = Variable.wire ~default:gnd in 
     let solve_a   = Variable.wire ~default:gnd in 
     let solve_b   = Variable.wire ~default:gnd in 
+    ignore (Scope.naming scope cnt2.value "cnt2");
+    ignore (Scope.naming scope cnt12.value "cnt12");
     ignore (Scope.naming scope loading.value "loading");
     ignore (Scope.naming scope done_flag.value "done_flag");
     compile [
@@ -104,7 +106,7 @@ module Make (P : Params) = struct
           loading <-- (i.cs &: i.data_valid);
           solve_a <--. 1;
           cnt2    <-- (cnt2.value +:. 1);
-          when_ (cnt2.value ==:. 2) [
+          when_ (cnt2.value ==:. 1) [
             sm.set_next CNT12_T
           ]
         ];
@@ -112,10 +114,10 @@ module Make (P : Params) = struct
           loading <-- (i.cs &: i.data_valid);
           solve_b <--. 1;
           cnt12   <-- (cnt12.value +:. 1);
-          when_ (cnt12.value ==:. 12) [
+          when_ (cnt12.value ==:. 11) [
             sm.set_next LOAD_T
           ];
-          when_ (cnt12.value ==:. 12 &: ~:(i.cs &: i.data_valid)) [
+          when_ (cnt12.value ==:. 11 &: ~:(i.cs &: i.data_valid)) [
             sm.set_next DONE_T
           ];
         ];
@@ -125,6 +127,7 @@ module Make (P : Params) = struct
         ];
       ]
     ];
+    ignore (Scope.naming scope sm.current "fsm_state");
 
     (* Feed in all the characters into a bcd shift register to stage *)
     let bcd_in : Signal.t array = Array.make P.bank_width (zero 4) in
@@ -151,13 +154,6 @@ module Make (P : Params) = struct
     let low_idx_init1    = of_int ~width:7 (part1_jolt_width - 1) in
     let low_idx_init2    = of_int ~width:7 (part2_jolt_width - 1) in
 
-    (* let f_prev idx = mux2 solve_a.value (idx -: of_int ~width:7 1) prev_idx_init in
-    let f_low  idx init = mux2 solve_a.value (idx -: of_int ~width:7 1) init in
-    let prev_idx1        = reg_fb spec ~width:7 ~f:f_prev in
-    let prev_idx2        = reg spec ~enable:isNL prev_idx_init in
-    let low_idx1         = reg spec ~enable:isNL low_idx_init1 in
-    let low_idx2         = reg_fb spec ~width:7 ~f:f_low in *)
-
     let f_dec_or_init init solve idx  = mux2 solve (idx -: of_int ~width:7 1) init in
     let f_hold_or_init init idx = mux2 isNL init idx in
 
@@ -171,12 +167,6 @@ module Make (P : Params) = struct
     ignore (Scope.naming scope low_idx1 ("low_idx1"));
     ignore (Scope.naming scope low_idx2 ("low_idx2"));
 
-
-    (* Feed the data into the max-finder *)
-    (* TODO: Need to loop it back the 2 or 12 times for the problem in order to successively close
-    the bounding in order to solve the problem *)
-    (* let test_prev_idx = of_int ~width:7 100 in
-    let test_low_idx = of_int ~width:7 12 in *)
 
     let fm_input_1 : _ Find_max_n.I.t = 
       { 
@@ -200,7 +190,7 @@ module Make (P : Params) = struct
       solution_b     = uresize fm_output_1.max_idx 32;
       p2_max         = uresize fm_output_2.max     32;
       p2_max_idx     = uresize fm_output_2.max_idx 32;
-      solution_valid = i.data_valid 
+      solution_valid = sm.is DONE_T
     }
 
   let hierarchical scope =

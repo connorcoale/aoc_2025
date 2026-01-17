@@ -19,7 +19,7 @@ let scope = Scope.create ()
 (* Instantiate circuit *)
 let circuit =
   C.create_exn
-    ~name:"solve_03_100"
+    ~name:"part_03"
     (Solve_03_100.circuit scope)
 
 let output_mode = Rtl.Output_mode.To_file "../part_03.sv"

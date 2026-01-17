@@ -10,9 +10,10 @@ LIBS     = src/lib/uart/uart_rx.sv src/lib/uart/uart_tx.sv \
 
 # Generated SV files
 SCALA_SRC    = src/part_02.scala
-CHISEL_GEN    = src/part_02.sv
-HARDCAML_SRC = src/part_03/lib/solve_03.ml
+CHISEL_GEN   = src/part_02.sv
+HARDCAML_SRC = src/part_03/lib/solve_03.ml src/part_03/lib/find_max_bounded.ml src/part_03/main.ml
 HARDCAML_GEN = src/part_03.sv
+GEN          = $(CHISEL_GEN) $(HARDCAML_GEN)
 
 # Testbenches
 TBS      = tb_top tb_01 tb_02 tb_solution2char
@@ -56,7 +57,7 @@ clean:
 # ========================
 # Scala -> SV generation
 # ========================
-GEN_CHISEL   = src/part_02.sv src/part_03.sv
+
 gen_chisel: $(SCALA_SRC)
 	scala-cli $(SCALA_SRC)
 
@@ -68,6 +69,9 @@ $(CHISEL_GEN): gen_chisel
 	
 $(HARDCAML_GEN): gen_hardcaml
 	echo "compiling hardcaml sources"
+
+gen_all: $(GEN)
+	echo "generating all sv files from alt HDLs"
 
 # ========================
 # Simulation configuration
@@ -82,7 +86,7 @@ SIM_RESDIR ?= sim/verilated
 # ========================
 
 # Numbered parts
-PARTS := 01 02 # 03 04 05 06 07 08 09 10 11 12
+PARTS := 01 02 03 # 04 05 06 07 08 09 10 11 12
 
 # Named (non-numbered) testbenches
 NAMED_TBS := tb_top tb_solution2char
@@ -103,16 +107,18 @@ $(SIM_RESDIR):
 # ========================
 # Verilator compilation rules
 # ========================
+EXTRA_VARGS_03 := --gate-stmts 5
 
 # Pattern rule for numbered parts:
 # tb/tb_<N>.sv -> sim/verilated/Vtb_<N>
-$(SIM_RESDIR)/Vtb_%: tb/tb_%.sv | $(SIM_RESDIR)
+$(SIM_RESDIR)/Vtb_%: tb/tb_n.sv | $(SIM_RESDIR) gen_all
 	$(SIM_TOOL) $(SIM_FLAGS) \
     --Mdir $(SIM_RESDIR) \
 	  --prefix Vtb_$* \
 	  tb/tb_n.sv \
 	  -Isrc \
 	  -f src/filelist/part_$*.f \
+		$(EXTRA_VARGS_$*) \
 	  -DPART_NUM=$*
 
 # Explicit rules for non-uniform testbenches
