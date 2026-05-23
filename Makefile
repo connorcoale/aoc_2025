@@ -21,10 +21,6 @@ TBS      = tb_top tb_01 tb_02 tb_solution2char
 # Simulation output directory
 SIM_RESDIR = sim/verilated
 
-# Verilator configuration
-SIM_TOOL  = verilator
-SIM_FLAGS = --binary -j 0 -Wno-lint --trace -Mdir $(SIM_RESDIR)
-
 # FPGA bitstream
 BITSTREAM = fpga/arty-a7-35t/top.bit
 TCL_SCRIPT = fpga/arty-a7-35t/compile.tcl
@@ -32,7 +28,21 @@ TCL_SCRIPT = fpga/arty-a7-35t/compile.tcl
 # ========================
 # PHONY targets
 # ========================
-.PHONY: all clean compile_sim run_sim run_sim_all generate_bitstream flash_bitstream
+.PHONY: all help clean gen_chisel gen_hardcaml gen_all compile_sim_all run_sim_% run_sim_all syn generate_bitstream flash_bitstream
+
+# ========================
+# Help target
+# ========================
+help:
+	@echo "Available targets:"
+	@echo "  make gen_chisel       - Generate Chisel RTL (part_02)"
+	@echo "  make gen_hardcaml     - Generate Hardcaml RTL (part_03)"
+	@echo "  make gen_all          - Generate all RTL from HDL sources"
+	@echo "  make compile_sim_all  - Compile all Verilator simulations"
+	@echo "  make run_sim_all      - Run all simulations"
+	@echo "  make run_sim_<part>   - Run specific part (01, 02, 03, etc)"
+	@echo "  make syn              - Run Yosys synthesis"
+	@echo "  make clean            - Clean build artifacts"
 
 # ========================
 # Default target
@@ -58,27 +68,26 @@ clean:
 # Scala -> SV generation
 # ========================
 
-gen_chisel: $(SCALA_SRC)
+$(CHISEL_GEN): $(SCALA_SRC)
 	scala-cli $(SCALA_SRC)
 
-gen_hardcaml: $(HARDCAML_SRC)
+gen_chisel: $(CHISEL_GEN)
+
+$(HARDCAML_GEN): $(HARDCAML_SRC)
 	cd src/part_03 && dune build && ./_build/default/main.exe && cd ../..
 
-$(CHISEL_GEN): gen_chisel
-	echo "compiling chisel sources"
-	
-$(HARDCAML_GEN): gen_hardcaml
-	echo "compiling hardcaml sources"
+gen_hardcaml: $(HARDCAML_GEN)
 
 gen_all: $(GEN)
-	echo "generating all sv files from alt HDLs"
 
 # ========================
 # Simulation configuration
 # ========================
 
 SIM_TOOL  ?= verilator
-SIM_FLAGS ?= --binary -j 0 -Wno-lint --trace
+VERBOSE   ?=
+QUIET = $(if $(VERBOSE),,--quiet-build --quiet-stats)
+SIM_FLAGS ?= --binary -j 0 -Wno-lint --trace $(QUIET)
 SIM_RESDIR ?= sim/verilated
 
 # ========================
@@ -111,7 +120,11 @@ EXTRA_VARGS_03 := --gate-stmts 5
 
 # Pattern rule for numbered parts:
 # tb/tb_<N>.sv -> sim/verilated/Vtb_<N>
-$(SIM_RESDIR)/Vtb_%: tb/tb_n.sv | $(SIM_RESDIR) gen_all
+# Each part depends only on its own generated HDL sources (if any)
+$(SIM_RESDIR)/Vtb_01: | $(SIM_RESDIR)
+$(SIM_RESDIR)/Vtb_02: $(CHISEL_GEN) | $(SIM_RESDIR)
+$(SIM_RESDIR)/Vtb_03: $(HARDCAML_GEN) | $(SIM_RESDIR)
+$(SIM_RESDIR)/Vtb_%: tb/tb_n.sv | $(SIM_RESDIR)
 	$(SIM_TOOL) $(SIM_FLAGS) \
     --Mdir $(SIM_RESDIR) \
 	  --prefix Vtb_$* \
@@ -124,12 +137,17 @@ $(SIM_RESDIR)/Vtb_%: tb/tb_n.sv | $(SIM_RESDIR) gen_all
 # Explicit rules for non-uniform testbenches
 $(SIM_RESDIR)/Vtb_top: tb/tb_top.sv src/*.sv $(CHISEL_GEN) $(HARDCAML_GEN) | $(SIM_RESDIR)
 	$(SIM_TOOL) $(SIM_FLAGS) \
+	  --Mdir $(SIM_RESDIR) \
+	  --prefix Vtb_top \
+	  --top-module tb_top \
 	  tb/tb_top.sv \
 	  -Isrc \
 	  -f src/filelist/top.f
 
 $(SIM_RESDIR)/Vtb_solution2char: tb/tb_solution2char.sv src/lib/bin2bcd/bin2bcd.sv | $(SIM_RESDIR)
 	$(SIM_TOOL) $(SIM_FLAGS) \
+	  --Mdir $(SIM_RESDIR) \
+	  --prefix Vtb_solution2char \
 	  tb/tb_solution2char.sv \
 	  -Isrc \
 	  -f src/filelist/solution2char.f
@@ -164,57 +182,6 @@ run_sim_all: compile_sim_all
 	)
 	@echo "All simulations finished."
 
-
-# # ========================
-# # Create simulation directory
-# # ========================
-# $(SIM_RESDIR):
-# 	mkdir -p $@
-
-# # ========================
-# # Verilator compilation (pattern rule)
-# # ========================
-# # Maps tb/tb_<name>.sv -> sim/verilated/V<name>
-
-# VERILATION_TARGETS = $(SIM_RESDIR)/Vtb_top $(SIM_RESDIR)/Vtb_01 $(SIM_RESDIR)/Vtb_02 $(SIM_RESDIR)/Vtb_solution2char
-
-# $(SIM_RESDIR)/Vtb_top: tb/tb_top.sv src/*.sv $(CHISEL_GEN) $(HARDCAML_GEN)
-# 	$(SIM_TOOL) $(SIM_FLAGS) tb/tb_top.sv -Isrc -f src/filelist/top.f
-
-# # Rule for tb_01
-# $(SIM_RESDIR)/Vtb_01: tb/tb_01.sv
-# 	$(SIM_TOOL) $(SIM_FLAGS) tb/tb_01.sv -Isrc -f src/filelist/part_01.f
-
-# # Rule for tb_02
-# $(SIM_RESDIR)/Vtb_02: tb/tb_02.sv $(CHISEL_GEN)
-# 	$(SIM_TOOL) $(SIM_FLAGS) tb/tb_02.sv -Isrc -f src/filelist/part_02.f
-
-# # Rule for tb_solution2char
-# $(SIM_RESDIR)/Vtb_solution2char: tb/tb_solution2char.sv src/lib/bin2bcd/bin2bcd.sv
-# 	$(SIM_TOOL) $(SIM_FLAGS) tb/tb_solution2char.sv -Isrc -f src/filelist/solution2char.f
-
-# verilate_all: $(CHISEL_GEN) $(HARDCAML_GEN) $(VERILATION_TARGETS)
-
-# # ========================
-# # Compile all simulations
-# # ========================
-# compile_sim_all: verilate_all
-# 	@echo "All simulations compiled."
-
-# # ========================
-# # Run individual simulation
-# # ========================
-# run_sim_%: $(SIM_RESDIR)/Vtb_%
-# 	$<
-
-# # ========================
-# # Run all simulations
-# # ========================
-# run_sim_all: compile_sim_all
-# 	@echo "Running all simulations..."
-# 	$(foreach tb,$(TBS),$(SIM_RESDIR)/V$(tb);)
-# 	@echo "All simulations finished."
-
 # ========================
 # Simple yosys synthesis
 # ========================
@@ -233,5 +200,7 @@ generate_bitstream: $(BITSTREAM)
 # ========================
 # Flash FPGA
 # ========================
-flash_bitstream: $(BITSTREAM)
-	echo "todo"
+.PHONY: flash_bitstream
+flash_bitstream:
+	@echo "Vivado bitstream generation not available on macOS"
+	@echo "Build bitstream on a Linux machine with Vivado installed"

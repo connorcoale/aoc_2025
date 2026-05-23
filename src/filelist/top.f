@@ -1,6 +1,7 @@
 src/top.sv
 src/part_01.sv
 src/part_02.sv
+src/part_03.sv
 src/solution2char.sv
 
 src/lib/uart/uart_rx.sv
