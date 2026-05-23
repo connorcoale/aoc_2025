@@ -40,11 +40,19 @@ Compared to Chisel, another functional language, Hardcaml has less "loosey-goose
 I used SystemVerilog as my base language, so the top module and a lot of supporting modules are written in this way. Otherwise, I tried to limit whatever coding I did to the language of choice for that AOC day. It was a fun challenge! I wish I had more time to add more polish... Oh well. Maybe my hardcaml attempt is worth 1/2 a t-shirt?
 
 ## Dependencies
-- yosys
-- vivado
-- opam
-  - hardcaml, ppx_deriving, ppx_deriving_hardcaml, etc
-- chisel
-- scala-cli
+### Required
+- verilator (simulation)
+- scala-cli (Chisel generation)
+- dune (Hardcaml/OCaml build)
+- python3 (Verilator internal scripts, transmission generation)
+- c++/clang++ (Verilator C++ compilation)
+- opam packages:
+  - hardcaml, ppx_hardcaml, ppx_enumerate, ppx_compare
+
+### Optional
+- yosys (RTL synthesis)
+- vivado (FPGA bitstream — x86 Linux only)
+
+Run `make check_deps` to verify your setup.
 
 I wish I had more time to give exact versions and instructions to install... otherwise just stumble your way through installations like I did.

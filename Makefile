@@ -35,6 +35,7 @@ TCL_SCRIPT = fpga/arty-a7-35t/compile.tcl
 # ========================
 help:
 	@echo "Available targets:"
+	@echo "  make check_deps       - Verify all required tools are installed"
 	@echo "  make gen_chisel       - Generate Chisel RTL (part_02)"
 	@echo "  make gen_hardcaml     - Generate Hardcaml RTL (part_03)"
 	@echo "  make gen_all          - Generate all RTL from HDL sources"
@@ -43,6 +44,56 @@ help:
 	@echo "  make run_sim_<part>   - Run specific part (01, 02, 03, etc)"
 	@echo "  make syn              - Run Yosys synthesis"
 	@echo "  make clean            - Clean build artifacts"
+
+# ========================
+# Dependency check
+# ========================
+C_GREEN  := \033[0;32m
+C_YELLOW := \033[0;33m
+C_RED    := \033[0;31m
+C_RESET  := \033[0m
+
+.PHONY: check_deps
+check_deps:
+	@echo "=== aoc_2025 — Dependency Check ==="
+	@echo ""
+	@echo "--- Required Tools ---"
+	@ok=0; fail=0; \
+	for tool in verilator scala-cli dune opam python3; do \
+		if command -v $${tool} >/dev/null 2>&1; then \
+			printf "  $(C_GREEN)[PASS]$(C_RESET) $${tool}\n"; ok=$$((ok+1)); \
+		else \
+			printf "  $(C_RED)[FAIL]$(C_RESET) $${tool}\n"; fail=$$((fail+1)); \
+		fi; \
+	done; \
+	if command -v c++ >/dev/null 2>&1; then \
+		printf "  $(C_GREEN)[PASS]$(C_RESET) c++ (C++ compiler)\n"; ok=$$((ok+1)); \
+	else \
+		printf "  $(C_RED)[FAIL]$(C_RESET) c++ (C++ compiler, needed by Verilator)\n"; fail=$$((fail+1)); \
+	fi; \
+	echo ""; \
+	echo "--- OCaml / OPAM Packages (for Hardcaml) ---"; \
+	for pkg in hardcaml ppx_hardcaml ppx_enumerate ppx_compare; do \
+		if opam list --installed $${pkg} >/dev/null 2>&1; then \
+			printf "  $(C_GREEN)[PASS]$(C_RESET) $${pkg}\n"; ok=$$((ok+1)); \
+		else \
+			printf "  $(C_RED)[FAIL]$(C_RESET) $${pkg}\n"; fail=$$((fail+1)); \
+		fi; \
+	done; \
+	echo ""; \
+	echo "--- Optional Tools ---"; \
+	if command -v yosys >/dev/null 2>&1; then \
+		printf "  $(C_GREEN)[PASS]$(C_RESET) yosys\n"; ok=$$((ok+1)); \
+	else \
+		printf "  $(C_YELLOW)[SKIP]$(C_RESET) yosys (not found - syn only)\n"; \
+	fi; \
+	if command -v vivado >/dev/null 2>&1; then \
+		printf "  $(C_GREEN)[PASS]$(C_RESET) vivado\n"; ok=$$((ok+1)); \
+	else \
+		printf "  $(C_YELLOW)[SKIP]$(C_RESET) vivado (not found — bitstream/fpga flashing only)\n"; \
+	fi; \
+	echo ""; \
+	printf "$(C_GREEN)Result: $${ok}/$$((ok+fail)) required checks passed$(C_RESET)\n"
 
 # ========================
 # Default target
