@@ -160,12 +160,12 @@ module Make (P : Params) = struct
     let part2_jolt_width = of_int ~width:7 12 in
     let jolt_idx       = mux2 (sm.is CNT12_T) part2_jolt_width part1_jolt_width -: (of_int ~width:7 1) in
 
-    let low_idx      = jolt_idx -: (uresize (mux2 (sm.is CNT12_T) cnt12.value cnt2.value) 7) in
-    let prev_idx     = wire 7 in
-    let prev_idx_reg = reg ~enable:vdd spec prev_idx in
-    ignore (Scope.naming scope prev_idx_reg ("prev_idx_reg"));
-    ignore (Scope.naming scope prev_idx ("prev_idx"));
-    ignore (Scope.naming scope low_idx ("low_idx"));
+    let%hw low_idx      = jolt_idx -: (uresize (mux2 (sm.is CNT12_T) cnt12.value cnt2.value) 7) in
+    let%hw prev_idx     = wire 7 in
+    let%hw prev_idx_reg = reg ~enable:vdd spec prev_idx in
+    (* ignore (Scope.naming scope prev_idx_reg ("prev_idx_reg"));
+    ignore (Scope.naming scope prev_idx ("prev_idx")); *)
+    (* ignore (Scope.naming scope low_idx ("low_idx")); *)
 
     let fm_input : _ Find_max_n.I.t = 
       { 
