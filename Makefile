@@ -171,6 +171,7 @@ $(SIM_BUILD_DIR):
 # ========================
 # Verilator compilation rules
 # ========================
+EXTRA_VARGS_02 := -DPART_OUTPUT_BCD
 EXTRA_VARGS_03 := --gate-stmts 5
 
 # Pattern rule for numbered parts:
@@ -234,12 +235,38 @@ run_sim_%: $(SIM_BUILD_DIR)/Vtb_%
 
 .PHONY: run_sim_all
 run_sim_all: compile_sim_all
-	@echo "Running all simulations..."
-	@$(foreach tb,$(TBS), \
-		echo ">>> Running $(SIM_BUILD_DIR)/V$(tb)"; \
-		$(SIM_BUILD_DIR)/V$(tb) || exit 1; \
-	)
-	@echo "All simulations finished."
+	@echo "============================================"
+	@echo "  All Simulations"
+	@echo "============================================"
+	@pass=0; fail=0; warn=0; \
+	for tb in $(NAMED_TBS); do \
+	  echo ""; \
+	  echo ">>> $$tb"; \
+	  $(SIM_BUILD_DIR)/V$$tb || exit 1; \
+	done; \
+	mkdir -p $(SIM_REF_DIR); \
+	for p in $(PARTS); do \
+	  if [ -f sim/stimulus/$$p/ref_$$p.py ]; then \
+	    python3 sim/stimulus/$$p/ref_$$p.py sim/stimulus/$$p/input_$$p.txt $(SIM_REF_DIR); \
+	  fi; \
+	done; \
+	for p in $(PARTS); do \
+	  echo ""; \
+	  echo ">>> tb_$$p"; \
+	  $(SIM_BUILD_DIR)/Vtb_$$p > $(SIM_BUILD_DIR)/.out_tb_$$p 2>&1; \
+	  cat $(SIM_BUILD_DIR)/.out_tb_$$p; \
+	  r=$$(grep -oE '(PASS|FAIL|WARN):' $(SIM_BUILD_DIR)/.out_tb_$$p 2>/dev/null | head -1 | tr -d ':'); \
+	  case "$$r" in \
+	    PASS) pass=$$((pass+1));; \
+	    FAIL) fail=$$((fail+1));; \
+	    WARN) warn=$$((warn+1));; \
+	  esac; \
+	  rm -f $(SIM_BUILD_DIR)/.out_tb_$$p; \
+	done; \
+	echo ""; \
+	echo "============================================"; \
+	printf "  %d passed, %d failed, %d warnings\n" $$pass $$fail $$warn; \
+	echo "============================================"
 
 # ========================
 # Simple yosys synthesis

@@ -32,8 +32,8 @@ module tb_n ();
   logic [47:0] solution_a, solution_b;
   logic solution_valid;
 
-  int expected_a;
-  int expected_b;
+  longint expected_a;
+  longint expected_b;
   int has_ref;
 
   initial begin
@@ -107,6 +107,23 @@ module tb_n ();
     $fclose(fd);
   endtask
 
+  function automatic longint bcd_to_longint(input logic [47:0] bcd);
+    longint result;
+    result = 0;
+    for (int i = 11; i >= 0; i--) begin
+      result = result * 10 + bcd[i*4 +: 4];
+    end
+    return result;
+  endfunction
+
+  `ifdef PART_OUTPUT_BCD
+    `define SOL_A bcd_to_longint(solution_a)
+    `define SOL_B bcd_to_longint(solution_b)
+  `else
+    `define SOL_A solution_a
+    `define SOL_B solution_b
+  `endif
+
   initial begin
     reset_dut();
     fork
@@ -117,15 +134,15 @@ module tb_n ();
       begin : wait_end
         @(solution_valid);
         if (has_ref) begin
-          if (solution_a != expected_a || solution_b != expected_b) begin
-            $display("FAIL: Part %s", `STR(`PART_NUM));
-            $display("  Got:      A=%0d B=%0d", solution_a, solution_b);
+          if (`SOL_A != expected_a || `SOL_B != expected_b) begin
+            $display("\033[0;31mFAIL:\033[0m Part %s", `STR(`PART_NUM));
+            $display("  Got:      A=%0d B=%0d", `SOL_A, `SOL_B);
             $display("  Expected: A=%0d B=%0d", expected_a, expected_b);
           end else begin
-            $display("PASS: Part %s", `STR(`PART_NUM));
+            $display("\033[0;32mPASS:\033[0m Part %s", `STR(`PART_NUM));
           end
         end else begin
-          $display("Part %s: A=%0d B=%0d", `STR(`PART_NUM), solution_a, solution_b);
+          $display("\033[0;33mWARN:\033[0m Part %s (no ref): A=%0d B=%0d", `STR(`PART_NUM), `SOL_A, `SOL_B);
         end
         repeat(10) @(cb);
       end
