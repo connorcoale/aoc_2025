@@ -31,7 +31,7 @@ TCL_SCRIPT = fpga/arty-a7-35t/compile.tcl
 # ========================
 # PHONY targets
 # ========================
-.PHONY: all help clean gen_chisel gen_hardcaml gen_all compile_sim_all run_sim_% run_sim_all syn generate_bitstream flash_bitstream
+.PHONY: all help clean gen_chisel gen_hardcaml gen_all compile_sim_all compile_sim_run run_sim_% run_sim_all run_sim_top syn generate_bitstream flash_bitstream FORCE
 
 # ========================
 # Help target
@@ -142,6 +142,7 @@ gen_all: $(GEN)
 
 SIM_TOOL  ?= verilator
 VERBOSE   ?=
+TRACE     ?=
 QUIET = $(if $(VERBOSE),,--quiet-build --quiet-stats)
 SIM_FLAGS ?= --binary -j 0 -Wno-lint --trace $(QUIET)
 SIM_BUILD_DIR ?= sim/verilated
@@ -179,6 +180,11 @@ $(SIM_BUILD_DIR):
 # ========================
 EXTRA_VARGS_02 := -DPART_OUTPUT_BCD
 EXTRA_VARGS_03 := --gate-stmts 5
+EXTRA_VARGS_TOP ?=
+
+ifneq ($(TRACE),)
+EXTRA_VARGS_TOP += -DTRACE
+endif
 
 # Pattern rule for numbered parts:
 # tb/tb_<N>.sv -> sim/verilated/Vtb_<N>
@@ -196,15 +202,24 @@ $(SIM_BUILD_DIR)/Vtb_%: tb/tb_n.sv | $(SIM_BUILD_DIR)
 		$(EXTRA_VARGS_$*) \
 	  -DPART_NUM=$*
 
+# Track flag changes for Vtb_top rebuild (e.g. TRACE=1)
+FORCE:
+
+$(SIM_BUILD_DIR)/.topflags: FORCE
+	@echo '$(EXTRA_VARGS_TOP)' > $@.tmp
+	@cmp -s $@.tmp $@ 2>/dev/null || cp $@.tmp $@
+	@rm -f $@.tmp
+
 # Explicit rules for non-uniform testbenches
-$(SIM_BUILD_DIR)/Vtb_top: tb/tb_top.sv src/*.sv $(CHISEL_GEN) $(HARDCAML_GEN) | $(SIM_BUILD_DIR)
+$(SIM_BUILD_DIR)/Vtb_top: tb/tb_top.sv src/*.sv $(CHISEL_GEN) $(HARDCAML_GEN) $(SIM_BUILD_DIR)/.topflags | $(SIM_BUILD_DIR)
 	$(SIM_TOOL) $(SIM_FLAGS) \
 	  --Mdir $(SIM_BUILD_DIR) \
 	  --prefix Vtb_top \
 	  --top-module tb_top \
 	  tb/tb_top.sv \
 	  -Isrc \
-	  -f src/filelist/top.f
+	  -f src/filelist/top.f \
+			$(EXTRA_VARGS_TOP)
 
 $(SIM_BUILD_DIR)/Vtb_solution2char: tb/tb_solution2char.sv src/lib/bin2bcd/bin2bcd.sv | $(SIM_BUILD_DIR)
 	$(SIM_TOOL) $(SIM_FLAGS) \
@@ -247,6 +262,12 @@ run_sim_top: $(SIM_BUILD_DIR)/Vtb_top
 	@echo "============================================"
 	@echo "  Top-Level Simulation"
 	@echo "============================================"
+	@mkdir -p $(SIM_REF_DIR); \
+	for p in $(PARTS); do \
+	  if [ -f sim/stimulus/$$p/ref_$$p.py ]; then \
+	    python3 sim/stimulus/$$p/ref_$$p.py sim/stimulus/$$p/input_$$p.txt $(SIM_REF_DIR); \
+	  fi; \
+	done
 	$(SIM_BUILD_DIR)/Vtb_top
 
 .PHONY: run_sim_all

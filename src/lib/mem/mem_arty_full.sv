@@ -47,4 +47,9 @@ module mem_arty_full #(
     end
   end
   assign rd_data = mem_rd_data;
+
+  // Backdoor write for testbench direct memory access
+  function automatic void tb_write(input [$clog2(DEPTH)-1:0] addr, input [WIDTH-1:0] data);
+    mem[addr] = data;
+  endfunction
 endmodule
