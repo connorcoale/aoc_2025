@@ -26,6 +26,8 @@ build/
 
 # can't upload your input!
 sim/stimulus/[01][0-9]/input_*.txt
+sim/stimulus/[01][0-9]/problem.txt
+sim/results
 
 # Chisel
 *.bsp

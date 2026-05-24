@@ -32,6 +32,23 @@ module tb_n ();
   logic [47:0] solution_a, solution_b;
   logic solution_valid;
 
+  int expected_a;
+  int expected_b;
+  int has_ref;
+
+  initial begin
+    int ref_fd;
+    string hdr;
+    has_ref = 0;
+    ref_fd = $fopen($sformatf("sim/results/ref_%s.csv", `STR(`PART_NUM)), "r");
+    if (ref_fd != 0) begin
+      void'($fgets(hdr, ref_fd));  // skip CSV header
+      void'($fscanf(ref_fd, "%d,%d", expected_a, expected_b));
+      $fclose(ref_fd);
+      has_ref = 1;
+    end
+  end
+
   initial begin
     $dumpfile($sformatf("sim/trace/trace_part_%s.vcd", `STR(`PART_NUM)));
     $dumpvars();
@@ -99,6 +116,17 @@ module tb_n ();
       end
       begin : wait_end
         @(solution_valid);
+        if (has_ref) begin
+          if (solution_a != expected_a || solution_b != expected_b) begin
+            $display("FAIL: Part %s", `STR(`PART_NUM));
+            $display("  Got:      A=%0d B=%0d", solution_a, solution_b);
+            $display("  Expected: A=%0d B=%0d", expected_a, expected_b);
+          end else begin
+            $display("PASS: Part %s", `STR(`PART_NUM));
+          end
+        end else begin
+          $display("Part %s: A=%0d B=%0d", `STR(`PART_NUM), solution_a, solution_b);
+        end
         repeat(10) @(cb);
       end
       begin : timeout

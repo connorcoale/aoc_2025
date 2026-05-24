@@ -19,7 +19,10 @@ GEN          = $(CHISEL_GEN) $(HARDCAML_GEN)
 TBS      = tb_top tb_01 tb_02 tb_solution2char
 
 # Simulation output directory
-SIM_RESDIR = sim/verilated
+SIM_BUILD_DIR = sim/verilated
+
+# Reference results directory
+SIM_REF_DIR = sim/results
 
 # FPGA bitstream
 BITSTREAM = fpga/arty-a7-35t/top.bit
@@ -104,7 +107,7 @@ all: compile_sim_all
 # Clean
 # ========================
 clean:
-	rm -rf $(SIM_RESDIR)/*
+	rm -rf $(SIM_BUILD_DIR)/*
 	rm -f $(CHISEL_GEN)
 	rm -f $(HARDCAML_GEN)
 	rm -f $(BITSTREAM)
@@ -114,6 +117,7 @@ clean:
 	rm -f syn/*.dot
 	rm -f syn/*.log
 	rm -rf src/part_03/_build/*
+	rm -rf $(SIM_REF_DIR)
 
 # ========================
 # Scala -> SV generation
@@ -139,7 +143,7 @@ SIM_TOOL  ?= verilator
 VERBOSE   ?=
 QUIET = $(if $(VERBOSE),,--quiet-build --quiet-stats)
 SIM_FLAGS ?= --binary -j 0 -Wno-lint --trace $(QUIET)
-SIM_RESDIR ?= sim/verilated
+SIM_BUILD_DIR ?= sim/verilated
 
 # ========================
 # Testbench lists
@@ -155,13 +159,13 @@ NAMED_TBS := tb_top tb_solution2char
 TBS := $(NAMED_TBS) $(addprefix tb_,$(PARTS))
 
 # Corresponding verilated binaries
-VERILATION_TARGETS := $(addprefix $(SIM_RESDIR)/V,$(TBS))
+VERILATION_TARGETS := $(addprefix $(SIM_BUILD_DIR)/V,$(TBS))
 
 # ========================
 # Create simulation directory
 # ========================
 
-$(SIM_RESDIR):
+$(SIM_BUILD_DIR):
 	mkdir -p $@
 
 # ========================
@@ -172,12 +176,12 @@ EXTRA_VARGS_03 := --gate-stmts 5
 # Pattern rule for numbered parts:
 # tb/tb_<N>.sv -> sim/verilated/Vtb_<N>
 # Each part depends only on its own generated HDL sources (if any)
-$(SIM_RESDIR)/Vtb_01: | $(SIM_RESDIR)
-$(SIM_RESDIR)/Vtb_02: $(CHISEL_GEN) | $(SIM_RESDIR)
-$(SIM_RESDIR)/Vtb_03: $(HARDCAML_GEN) | $(SIM_RESDIR)
-$(SIM_RESDIR)/Vtb_%: tb/tb_n.sv | $(SIM_RESDIR)
+$(SIM_BUILD_DIR)/Vtb_01: | $(SIM_BUILD_DIR)
+$(SIM_BUILD_DIR)/Vtb_02: $(CHISEL_GEN) | $(SIM_BUILD_DIR)
+$(SIM_BUILD_DIR)/Vtb_03: $(HARDCAML_GEN) | $(SIM_BUILD_DIR)
+$(SIM_BUILD_DIR)/Vtb_%: tb/tb_n.sv | $(SIM_BUILD_DIR)
 	$(SIM_TOOL) $(SIM_FLAGS) \
-    --Mdir $(SIM_RESDIR) \
+    --Mdir $(SIM_BUILD_DIR) \
 	  --prefix Vtb_$* \
 	  tb/tb_n.sv \
 	  -Isrc \
@@ -186,18 +190,18 @@ $(SIM_RESDIR)/Vtb_%: tb/tb_n.sv | $(SIM_RESDIR)
 	  -DPART_NUM=$*
 
 # Explicit rules for non-uniform testbenches
-$(SIM_RESDIR)/Vtb_top: tb/tb_top.sv src/*.sv $(CHISEL_GEN) $(HARDCAML_GEN) | $(SIM_RESDIR)
+$(SIM_BUILD_DIR)/Vtb_top: tb/tb_top.sv src/*.sv $(CHISEL_GEN) $(HARDCAML_GEN) | $(SIM_BUILD_DIR)
 	$(SIM_TOOL) $(SIM_FLAGS) \
-	  --Mdir $(SIM_RESDIR) \
+	  --Mdir $(SIM_BUILD_DIR) \
 	  --prefix Vtb_top \
 	  --top-module tb_top \
 	  tb/tb_top.sv \
 	  -Isrc \
 	  -f src/filelist/top.f
 
-$(SIM_RESDIR)/Vtb_solution2char: tb/tb_solution2char.sv src/lib/bin2bcd/bin2bcd.sv | $(SIM_RESDIR)
+$(SIM_BUILD_DIR)/Vtb_solution2char: tb/tb_solution2char.sv src/lib/bin2bcd/bin2bcd.sv | $(SIM_BUILD_DIR)
 	$(SIM_TOOL) $(SIM_FLAGS) \
-	  --Mdir $(SIM_RESDIR) \
+	  --Mdir $(SIM_BUILD_DIR) \
 	  --prefix Vtb_solution2char \
 	  tb/tb_solution2char.sv \
 	  -Isrc \
@@ -216,7 +220,11 @@ compile_sim_all: $(VERILATION_TARGETS)
 # ========================
 
 .PHONY: run_sim_%
-run_sim_%: $(SIM_RESDIR)/Vtb_%
+run_sim_%: $(SIM_BUILD_DIR)/Vtb_%
+	@if [ -f sim/stimulus/$*/ref_$*.py ]; then \
+	  mkdir -p $(SIM_REF_DIR); \
+	  python3 sim/stimulus/$*/ref_$*.py sim/stimulus/$*/input_$*.txt $(SIM_REF_DIR); \
+	fi
 	@echo "Running $<"
 	$<
 
@@ -228,8 +236,8 @@ run_sim_%: $(SIM_RESDIR)/Vtb_%
 run_sim_all: compile_sim_all
 	@echo "Running all simulations..."
 	@$(foreach tb,$(TBS), \
-		echo ">>> Running $(SIM_RESDIR)/V$(tb)"; \
-		$(SIM_RESDIR)/V$(tb) || exit 1; \
+		echo ">>> Running $(SIM_BUILD_DIR)/V$(tb)"; \
+		$(SIM_BUILD_DIR)/V$(tb) || exit 1; \
 	)
 	@echo "All simulations finished."
 
