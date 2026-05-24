@@ -102,15 +102,12 @@ class part_02 (num: Int, bcdWidth: Int = 12) extends Module {
   val idChecker = Module(new IDChecker(bcdWidth))
   val check = state === State.checking && !idChecker.io.busy
   when (idChecker.io.done) {
-    for (i <- 0 until num) {
-      if (i == 0) {
-        starts(i) := 0.U.asTypeOf(starts(i))
-        ends(i)   := 0.U.asTypeOf(starts(i))
-      } else {
-        starts(i) := starts(i - 1)
-        ends(i)   := ends(i - 1)
-      }
+    for (i <- 0 until num - 1) {
+      starts(i) := starts(i + 1)
+      ends(i)   := ends(i + 1)
     }
+    starts(num - 1) := 0.U.asTypeOf(starts(0))
+    ends(num - 1)   := 0.U.asTypeOf(ends(0))
   }
   val checkCnt = RegInit(0.U(num.W))
   when (state === State.loading && stateNext === State.checking) { checkCnt := (1.U << (num-1)) }
