@@ -2,9 +2,10 @@
 ## HOW TO:
 ### How to run TB(s)
 ```
-make run_sim_<n> # where n is 01, 02, 03
-make run_sim_top
-make run_sim_all
+make run_sim_<n>         # where n is 01, 02, 03 (numbered parts only)
+make run_sim_solution2char  # the solution2char formatting TB
+make run_sim_all         # runs tb_solution2char + all numbered parts (aggregate count)
+make run_sim_top         # runs the full top-level simulation
 ```
 ### How to symthesize with yosys
 ```
@@ -23,8 +24,8 @@ Just check the Makefile. It's a bit of a mess, and was definitely an exploration
 I wanted to try to solve every problem with a new HDL (or alt-HDL). However, I ran out of time to get even close to done. Turns out it's a lot harder to learn a new language every week or so. 
 
 What I succeeded in:
-Day 1: SystemVerilog
-Day 2: Chisel
+Day 1: SystemVerilog (complete)
+Day 2: Chisel (complete — BCD-encoded output)
 Day 3: (75% done) Hardcaml
 
 My next days were probably going to be Veryl, Spinal, VHDL, Amaranth, Migen. Maybe I'll get around to it sometime this year!
@@ -54,5 +55,13 @@ I used SystemVerilog as my base language, so the top module and a lot of support
 - vivado (FPGA bitstream — x86 Linux only)
 
 Run `make check_deps` to verify your setup.
+
+### Testbenches
+- **tb_top**: Full end-to-end simulation with UART I/O and memory
+- **tb_solution2char**: Unit tests for the solution-to-string formatter (BCD and binary paths)
+- **tb_01/tb_02/tb_03**: Day-specific simulations against reference solutions
+
+Run `make run_sim_all` to run all day simulations and the solution2char formatter tests.
+Run `make run_sim_top` (separately) for the full top-level simulation — this may be a longer test.
 
 I wish I had more time to give exact versions and instructions to install... otherwise just stumble your way through installations like I did.

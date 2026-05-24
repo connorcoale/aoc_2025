@@ -242,17 +242,6 @@ module tb_solution2char;
     build_exp(4'd10, dig_a, dig_b, exp);
     run_test(48'd0, 48'd0, 4'd10, "BIN day 10 tens-digit", exp);
 
-    // ======== Summary ========
-    @(cb);
-    $display("");
-    $display("============================================");
-    $display("  Solution2Char Tests");
-    $display("============================================");
-    if (fail_count == 0)
-      $display("\033[0;32m  %0d passed, %0d failed\033[0m", pass_count, fail_count);
-    else
-      $display("\033[0;31m  %0d passed, %0d failed\033[0m", pass_count, fail_count);
-    $display("============================================");
     $finish;
   end
 endmodule

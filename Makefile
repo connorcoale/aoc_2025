@@ -43,9 +43,10 @@ help:
 	@echo "  make gen_hardcaml     - Generate Hardcaml RTL (part_03)"
 	@echo "  make gen_all          - Generate all RTL from HDL sources"
 	@echo "  make compile_sim_all  - Compile all Verilator simulations"
-	@echo "  make run_sim_all      - Run all simulations"
+	@echo "  make run_sim_all      - Run all named TBs and numbered part simulations"
 	@echo "  make run_sim_<part>   - Run specific part (01, 02, 03, etc)"
 	@echo "  make syn              - Run Yosys synthesis"
+	@echo "  make run_sim_top      - Run top-level simulation only"
 	@echo "  make clean            - Clean build artifacts"
 
 # ========================
@@ -155,11 +156,16 @@ PARTS := 01 02 03 # 04 05 06 07 08 09 10 11 12
 # Named (non-numbered) testbenches
 NAMED_TBS := tb_top tb_solution2char
 
+# Named testbenches included in run_sim_all (excludes tb_top)
+NAMED_TBS_RUN := tb_solution2char
+
 # All testbenches (no path, no V prefix)
 TBS := $(NAMED_TBS) $(addprefix tb_,$(PARTS))
+TBS_RUN := $(NAMED_TBS_RUN) $(addprefix tb_,$(PARTS))
 
 # Corresponding verilated binaries
 VERILATION_TARGETS := $(addprefix $(SIM_BUILD_DIR)/V,$(TBS))
+VERILATION_TARGETS_RUN := $(addprefix $(SIM_BUILD_DIR)/V,$(TBS_RUN))
 
 # ========================
 # Create simulation directory
@@ -212,9 +218,12 @@ $(SIM_BUILD_DIR)/Vtb_solution2char: tb/tb_solution2char.sv src/lib/bin2bcd/bin2b
 # Compile all simulations
 # ========================
 
-.PHONY: compile_sim_all
+.PHONY: compile_sim_all compile_sim_run
 compile_sim_all: $(VERILATION_TARGETS)
 	@echo "All simulations compiled."
+
+compile_sim_run: $(VERILATION_TARGETS_RUN)
+	@echo "Run-sim simulations compiled."
 
 # ========================
 # Run individual simulation
@@ -233,39 +242,41 @@ run_sim_%: $(SIM_BUILD_DIR)/Vtb_%
 # Run all simulations
 # ========================
 
+.PHONY: run_sim_top run_sim_all
+run_sim_top: $(SIM_BUILD_DIR)/Vtb_top
+	@echo "============================================"
+	@echo "  Top-Level Simulation"
+	@echo "============================================"
+	$(SIM_BUILD_DIR)/Vtb_top
+
 .PHONY: run_sim_all
-run_sim_all: compile_sim_all
+run_sim_all: compile_sim_run
 	@echo "============================================"
 	@echo "  All Simulations"
 	@echo "============================================"
 	@pass=0; fail=0; warn=0; \
-	for tb in $(NAMED_TBS); do \
-	  echo ""; \
-	  echo ">>> $$tb"; \
-	  $(SIM_BUILD_DIR)/V$$tb || exit 1; \
-	done; \
 	mkdir -p $(SIM_REF_DIR); \
 	for p in $(PARTS); do \
 	  if [ -f sim/stimulus/$$p/ref_$$p.py ]; then \
 	    python3 sim/stimulus/$$p/ref_$$p.py sim/stimulus/$$p/input_$$p.txt $(SIM_REF_DIR); \
 	  fi; \
 	done; \
-	for p in $(PARTS); do \
+	for tb in $(NAMED_TBS_RUN) $(addprefix tb_,$(PARTS)); do \
 	  echo ""; \
-	  echo ">>> tb_$$p"; \
-	  $(SIM_BUILD_DIR)/Vtb_$$p > $(SIM_BUILD_DIR)/.out_tb_$$p 2>&1; \
-	  cat $(SIM_BUILD_DIR)/.out_tb_$$p; \
-	  r=$$(grep -oE '(PASS|FAIL|WARN):' $(SIM_BUILD_DIR)/.out_tb_$$p 2>/dev/null | head -1 | tr -d ':'); \
-	  case "$$r" in \
-	    PASS) pass=$$((pass+1));; \
-	    FAIL) fail=$$((fail+1));; \
-	    WARN) warn=$$((warn+1));; \
-	  esac; \
-	  rm -f $(SIM_BUILD_DIR)/.out_tb_$$p; \
+	  echo ">>> $$tb"; \
+	  $(SIM_BUILD_DIR)/V$$tb > $(SIM_BUILD_DIR)/.out_$$tb 2>&1; \
+	  cat $(SIM_BUILD_DIR)/.out_$$tb; \
+	  p=$$(grep -oE 'PASS:' $(SIM_BUILD_DIR)/.out_$$tb 2>/dev/null | wc -l); \
+	  f=$$(grep -oE 'FAIL:' $(SIM_BUILD_DIR)/.out_$$tb 2>/dev/null | wc -l); \
+	  w=$$(grep -oE 'WARN:' $(SIM_BUILD_DIR)/.out_$$tb 2>/dev/null | wc -l); \
+	  pass=$$((pass + p)); \
+	  fail=$$((fail + f)); \
+	  warn=$$((warn + w)); \
+	  rm -f $(SIM_BUILD_DIR)/.out_$$tb; \
 	done; \
 	echo ""; \
 	echo "============================================"; \
-	printf "  %d passed, %d failed, %d warnings\n" $$pass $$fail $$warn; \
+	printf "  $(C_GREEN)%d passed$(C_RESET), $(C_RED)%d failed$(C_RESET), $(C_YELLOW)%d warnings$(C_RESET)\n" $$pass $$fail $$warn; \
 	echo "============================================"
 
 # ========================
