@@ -56,6 +56,14 @@ module tb_top;
   int pass_count;
   int fail_count;
 
+  // Module-scope so VCD tracing can see them
+  string exp_msg;
+  string got_msg;
+  logic [255:0] exp_msg_flat;
+  logic [255:0] got_msg_flat;
+  logic [7:0] dig_a[12], dig_b[12];
+  longint expected_a, expected_b;
+
   // ---------------------------------------------
   // Dumpfile (disabled for performance — enable by defining TRACE)
   // ---------------------------------------------
@@ -165,9 +173,12 @@ module tb_top;
   // ---------------------------------------------
   // Receive a 32-byte message from UART
   // ---------------------------------------------
-  task recv_message(output logic [7:0] msg[0:31]);
+  task recv_message(output string msg);
+    byte b;
+    msg = "";
     for (int i = 0; i < 32; i++) begin
-      recv_byte(msg[i]);
+      recv_byte(b);
+      msg = {msg, string'(b)};
     end
   endtask
 
@@ -191,19 +202,17 @@ module tb_top;
   // Build expected message in format "DD: SSSSSSSSSSSS,TTTTTTTTTTTT\0\0\0"
   // Matching solution2char's output format
   // ---------------------------------------------
-  function automatic void build_expected_message(input [3:0] d, input logic [7:0] sa[12],
-                                                  input logic [7:0] sb[12],
-                                                  output logic [7:0] exp[0:31]);
-    exp[0] = 8'((d > 9) ? 1 : 0) + 8'd48;
-    exp[1] = 8'((d > 9) ? d - 10 : d) + 8'd48;
-    exp[2] = 8'h3A; // ':'
-    exp[3] = 8'h20; // ' '
-    for (int i = 0; i < 12; i++) exp[4  + i] = sa[i];
-    exp[16] = 8'h2C; // ','
-    for (int i = 0; i < 12; i++) exp[17 + i] = sb[i];
-    exp[29] = 8'h00;
-    exp[30] = 8'h00;
-    exp[31] = 8'h00;
+  function automatic string build_expected_message(input [3:0] d, input logic [7:0] sa[12],
+                                                       input logic [7:0] sb[12]);
+    string exp;
+    exp = {string'(8'((d > 9) ? 1 : 0) + 8'd48),
+           string'(8'((d > 9) ? d - 10 : d) + 8'd48),
+           ":", " "};
+    for (int i = 0; i < 12; i++) exp = {exp, string'(sa[i])};
+    exp = {exp, ","};
+    for (int i = 0; i < 12; i++) exp = {exp, string'(sb[i])};
+    for (int i = 0; i < 3; i++)  exp = {exp, string'(8'h00)};
+    return exp;
   endfunction
 
   // ---------------------------------------------
@@ -226,7 +235,7 @@ module tb_top;
   // ---------------------------------------------
   // Compare received message against expected
   // ---------------------------------------------
-  task compare_message(input int day, input logic [7:0] got[0:31], input logic [7:0] exp[0:31]);
+  task compare_message(input int day, input string got, input string exp);
     int mismatch;
     mismatch = -1;
     for (int i = 0; i < 32; i++) begin
@@ -288,11 +297,6 @@ module tb_top;
   // Test sequence
   // ---------------------------------------------
   initial begin
-    logic [7:0] exp_msg[0:31];
-    logic [7:0] got_msg[0:31];
-    logic [7:0] dig_a[12], dig_b[12];
-    longint expected_a, expected_b;
-
     pass_count = 0;
     fail_count = 0;
 
@@ -326,7 +330,7 @@ module tb_top;
         // Build expected message from reference
         longint_to_digits(expected_a, dig_a);
         longint_to_digits(expected_b, dig_b);
-        build_expected_message(d[3:0], dig_a, dig_b, exp_msg);
+        exp_msg = build_expected_message(d[3:0], dig_a, dig_b);
 
         // Solve day d
         $display("[TB] Solving day %0d...", d);
@@ -356,7 +360,8 @@ module tb_top;
         print_soln_n = 1'b1;
         wait(i_dut.done_tx);
         @(posedge clock);
-        got_msg = i_dut.inst_solution2char.message_flat;
+        got_msg = {32{8'h00}};
+        for (int j = 0; j < 32; j++) got_msg[j] = i_dut.inst_solution2char.message_flat[j*8+:8];
 `else
         sw = d[3:0];
         print_soln_n = 1'b0;
@@ -367,7 +372,9 @@ module tb_top;
         recv_message(got_msg);
 `endif
 
+
         compare_message(d, got_msg, exp_msg);
+        $display("day: %0d\n got_msg: \"%s\"\n exp_msg: \"%s\"", d, got_msg, exp_msg);
       end
     end
 
@@ -386,6 +393,8 @@ module tb_top;
   join_any
   disable fork;
 
+  repeat (1_000) @(posedge clock);
+
   // Summary
   if (fail_count == 0)
     $display("\033[0;32m  %0d passed, %0d failed\033[0m", pass_count, fail_count);
@@ -394,5 +403,10 @@ module tb_top;
   $display("============================================");
   $display("Simulation finished at time %t", $time);
   $finish;
+  end
+
+  for (genvar j = 0; j < 32; j++) begin
+    assign got_msg_flat[j*8+:8] = got_msg[31-j];
+    assign exp_msg_flat[j*8+:8] = exp_msg[31-j];
   end
 endmodule
