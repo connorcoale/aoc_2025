@@ -52,4 +52,8 @@ module mem_arty_full #(
   function automatic void tb_write(input [$clog2(DEPTH)-1:0] addr, input [WIDTH-1:0] data);
     mem[addr] = data;
   endfunction
+
+  function automatic [WIDTH-1:0] tb_read(input [$clog2(DEPTH)-1:0] addr);
+    return mem[addr];
+  endfunction
 endmodule

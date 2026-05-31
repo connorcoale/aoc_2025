@@ -163,6 +163,11 @@ module top (
   end
   assign day_mem_addr[0] = '0;
 
+  function automatic void tb_set_day_addr(input int idx, input [BRAM_ADDR_W-1:0] val);
+    day_mem_addr[idx] = val;
+    day_mem_addr_next[idx] = val;
+  endfunction
+
   task automatic set_default_day_mem();
     for (int i = 0; i <= ADVENT_N; i++) begin
       day_mem_addr_next[i] = day_mem_addr[i];

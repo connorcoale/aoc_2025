@@ -186,6 +186,10 @@ ifneq ($(TRACE),)
 EXTRA_VARGS_TOP += -DTRACE
 endif
 
+ifneq ($(BACKDOOR),)
+EXTRA_VARGS_TOP += -DBACKDOOR_LOAD -DBACKDOOR_READ
+endif
+
 # Pattern rule for numbered parts:
 # tb/tb_<N>.sv -> sim/verilated/Vtb_<N>
 # Each part depends only on its own generated HDL sources (if any)

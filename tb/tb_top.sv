@@ -280,7 +280,7 @@ module tb_top;
       if (addr != 0) begin
         i_dut.mem.tb_write(addr - 1, byte_val);
         if (byte_val == 8'h03) begin
-          i_dut.day_mem_addr[day_mem_ptr] = addr;
+          i_dut.tb_set_day_addr(day_mem_ptr, addr);
           day_mem_ptr++;
         end else if (byte_val == 8'h04) begin
           break;
@@ -337,6 +337,7 @@ module tb_top;
         sw = d[3:0];
         solve_day_n = 1'b0;
         @(posedge clock);
+        @(posedge clock);
         solve_day_n = 1'b1;
 
         // Wait for the part module to finish solving (poll with timeout)
@@ -360,8 +361,8 @@ module tb_top;
         print_soln_n = 1'b1;
         wait(i_dut.done_tx);
         @(posedge clock);
-        got_msg = {32{8'h00}};
-        for (int j = 0; j < 32; j++) got_msg[j] = i_dut.inst_solution2char.message_flat[j*8+:8];
+        got_msg = "";
+        for (int j = 0; j < 32; j++) got_msg = {got_msg, string'(i_dut.inst_solution2char.message_flat[j*8+:8])};
 `else
         sw = d[3:0];
         print_soln_n = 1'b0;
